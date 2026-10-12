@@ -66,9 +66,9 @@
             <p>Escolha a prática que deseja realizar hoje:</p>
 
             <div class="grid-menu">
-                <div class="card-menu" onclick="TitrationLab.init()">
-                    <h3>🧪 Titulação Ácido-Base (Principal)</h3>
-                    <p>Determine a concentração de HCl utilizando NaOH 0,1000 mol/L com fenolftaleína e repetições estatísticas.</p>
+                <div class="card-menu" onclick="TitrationLab.openConfig()">
+                    <h3>🧪 Titulação Ácido-Base (Personalizável)</h3>
+                    <p>Configure reagentes, concentrações, indicadores e realize titulações com gráfico de pH em tempo real.</p>
                 </div>
                 <div class="card-menu" onclick="MiniGamePH.init()">
                     <h3>📊 Medição de Escala de pH</h3>
@@ -97,10 +97,80 @@
             </div>
         </div>
 
+        <!-- TELA DE CONFIGURAÇÃO DA TITULAÇÃO -->
+        <div id="screen-titration-config" class="screen">
+            <h2>Configuração da Titulação Ácido-Base</h2>
+            <p>Personalize os parâmetros do experimento antes de iniciar a prática no laboratório virtual.</p>
+
+            <div class="config-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                <div class="control-group">
+                    <label>Solução no Erlenmeyer (Titrando):</label>
+                    <select id="cfgFlaskSolution">
+                        <option value="HCl">Ácido Clorídrico (HCl)</option>
+                        <option value="CH3COOH">Ácido Acético (CH₃COOH)</option>
+                        <option value="NaOH">Hidróxido de Sódio (NaOH)</option>
+                        <option value="KOH">Hidróxido de Potássio (KOH)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Solução na Bureta (Titulante):</label>
+                    <select id="cfgBuretteSolution">
+                        <option value="NaOH" selected>Hidróxido de Sódio (NaOH)</option>
+                        <option value="KOH">Hidróxido de Potássio (KOH)</option>
+                        <option value="HCl">Ácido Clorídrico (HCl)</option>
+                        <option value="CH3COOH">Ácido Acético (CH₃COOH)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Modo de Concentração:</label>
+                    <select id="cfgConcMode" onchange="TitrationLab.toggleConfigMode()">
+                        <option value="unknown_titrand">Determinar Concentração do Erlenmeyer (Desconhecida)</option>
+                        <option value="unknown_titrant">Determinar Concentração da Bureta (Desconhecida)</option>
+                        <option value="training">Simulação de Treinamento (Ambas Conhecidas)</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="groupKnownConc">
+                    <label id="labelKnownConc">Concentração da Solução Conhecida (mol/L):</label>
+                    <input type="number" id="cfgKnownConcVal" value="0.1000" step="0.0001" min="0.0001">
+                </div>
+
+                <div class="control-group">
+                    <label>Volume Inicial da Amostra (Erlenmeyer):</label>
+                    <select id="cfgSampleVol">
+                        <option value="10.00">10,00 mL</option>
+                        <option value="20.00">20,00 mL</option>
+                        <option value="25.00" selected>25,00 mL</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="groupCustomVol" style="display:none;">
+                    <label>Volume Personalizado (mL):</label>
+                    <input type="number" id="cfgCustomVolVal" value="15.00" step="0.1" min="1" max="100">
+                </div>
+
+                <div class="control-group">
+                    <label>Indicador Químico:</label>
+                    <select id="cfgIndicator">
+                        <option value="phenolphthalein">Fenolftaleína (Incolor → Rosa)</option>
+                        <option value="universal">Indicador Universal (Espectro pH)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex-row mt-4">
+                <button class="btn" onclick="TitrationLab.startFromConfig()">Iniciar Experimento</button>
+                <button class="btn btn-secondary" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
+            </div>
+        </div>
+
         <!-- LAB DE TITULAÇÃO ÁCIDO-BASE -->
         <div id="screen-titration" class="screen">
-            <h2>Experimento: Titulação de HCl com NaOH</h2>
-            <p>Objetivo: Determinar a concentração exata de 25,00 mL de HCl utilizando NaOH 0,1000 mol/L e fenolftaleína.</p>
+            <h2>Experimento: Titulação de Soluções</h2>
+            <p id="titrationObjective">Objetivo: Determinar a concentração desconhecida da amostra.</p>
 
             <div class="lab-container">
                 <div>
@@ -117,15 +187,16 @@
                         <div class="flask-container">
                             <div class="erlenmeyer-neck"></div>
                             <div class="erlenmeyer">
-                                <div class="erlenmeyer-liquid" id="erlenmeyerLiquid" style="background-color: transparent;"></div>
+                                <div class="erlenmeyer-liquid" id="erlenmeyerLiquid" style="background-color: transparent; height: 50%;"></div>
                             </div>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
                         <button class="btn" id="btnStopcock" onclick="TitrationLab.toggleStopcock()">Abrir/Fechar Torneira</button>
-                        <button class="btn btn-secondary" onclick="TitrationLab.addDrop()">Adicionar 1 Gota (~0,05 mL)</button>
-                        <button class="btn btn-secondary" onclick="TitrationLab.addStream()">Adicionar 1,0 mL</button>
+                        <button class="btn btn-secondary" onclick="TitrationLab.addDrop()">1 Gota (~0,05 mL)</button>
+                        <button class="btn btn-secondary" onclick="TitrationLab.addSmall()">0,10 mL</button>
+                        <button class="btn btn-secondary" onclick="TitrationLab.addStream()">1,0 mL</button>
                         <button class="btn btn-danger" onclick="TitrationLab.resetFlask()">Descartar e Recomeçar</button>
                     </div>
                 </div>
@@ -137,20 +208,20 @@
                         <span id="trialNumber" style="font-size: 1.2rem; font-weight: bold; color: var(--primary-dark);">1 de 3</span>
                     </div>
                     <div class="control-group">
-                        <label>Volume Inicial da Bureta:</label>
+                        <label>Leitura Inicial da Bureta:</label>
                         <span id="volInitialDisplay">0,00 mL</span>
                     </div>
                     <div class="control-group">
-                        <label>Volume NaOH Gasto:</label>
+                        <label>Volume Titulante Gasto:</label>
                         <span id="volSpentDisplay" style="font-size: 1.3rem; font-weight: bold; color: var(--emerald-dark);">0,00 mL</span>
                     </div>
                     <div class="control-group">
-                        <label>pH Estimado da Solução:</label>
-                        <span id="pHDisplay">1,00 (Ácido)</span>
+                        <label>pH Atual:</label>
+                        <span id="pHDisplay">1,00</span>
                     </div>
                     <div class="control-group">
-                        <label>Estado da Titulação:</label>
-                        <span id="statusDisplay" style="font-weight: 600; color: var(--danger);">Incolor (Ácido)</span>
+                        <label>Estado do Indicador:</label>
+                        <span id="statusDisplay" style="font-weight: 600; color: var(--danger);">Incolor</span>
                     </div>
 
                     <button class="btn mt-4" id="btnFinishTrial" onclick="TitrationLab.finishTrial()" disabled>Registrar Ponto Final</button>
@@ -158,27 +229,35 @@
                 </div>
             </div>
 
+            <!-- GRÁFICO DE PH EM TEMPO REAL -->
+            <div class="mt-4" style="background: #fff; padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                <h3>Curva de Titulação (pH vs Volume Adicionado)</h3>
+                <div style="display: flex; justify-content: center; width: 100%; overflow-x: auto;">
+                    <canvas id="titrationCanvas" width="600" height="280" style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px;"></canvas>
+                </div>
+            </div>
+
             <!-- TELA DE CÁLCULOS E RESULTADOS DA TITULAÇÃO -->
             <div id="calcSection" class="screen mt-4 hidden" style="display:none; padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
                 <h3>Etapa de Cálculos Químicos</h3>
-                <p>Insira os dados obtidos para calcular a concentração da amostra de HCl:</p>
+                <p>Insira os dados obtidos para determinar a concentração desconhecida:</p>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div class="control-group">
-                        <label>Volume de NaOH Gasto (V_NaOH em mL):</label>
-                        <input type="number" id="calcVNaOH" step="0.01" readonly>
+                        <label>Volume Gasto do Titulante (mL):</label>
+                        <input type="number" id="calcVTitrant" step="0.01" readonly>
                     </div>
                     <div class="control-group">
-                        <label>Volume da Amostra de HCl (V_HCl em mL):</label>
-                        <input type="number" id="calcVHCl" value="25.00" readonly>
+                        <label>Volume da Amostra (mL):</label>
+                        <input type="number" id="calcVSample" readonly>
                     </div>
                     <div class="control-group">
-                        <label>Concentração de NaOH (C_NaOH em mol/L):</label>
-                        <input type="number" id="calcCNaOH" value="0.1000" readonly>
+                        <label>Concentração Conhecida (mol/L):</label>
+                        <input type="number" id="calcKnownC" readonly>
                     </div>
                     <div class="control-group">
-                        <label>Sua Concentração Calculada de HCl (mol/L):</label>
-                        <input type="number" id="userCHCIInput" step="0.0001" placeholder="Ex: 0.1025">
+                        <label>Sua Concentração Calculada (mol/L):</label>
+                        <input type="number" id="userResultInput" step="0.0001" placeholder="Ex: 0.1025">
                     </div>
                 </div>
 
@@ -196,8 +275,8 @@
                             <th>Tentativa</th>
                             <th>Vol. Inicial (mL)</th>
                             <th>Vol. Final (mL)</th>
-                            <th>Vol. Gasto NaOH (mL)</th>
-                            <th>Conc. HCl (mol/L)</th>
+                            <th>Vol. Gasto (mL)</th>
+                            <th>Conc. Determinada (mol/L)</th>
                         </tr>
                     </thead>
                     <tbody>
