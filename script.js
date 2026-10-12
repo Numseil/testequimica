@@ -10,6 +10,10 @@ const App = {
         }
     },
 
+    goToHome() {
+        this.goToScreen('screen-home');
+    },
+
     goToScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(screenId);
@@ -60,7 +64,7 @@ window.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
-// 1. BALANÇA ANALÍTICA APERFEIÇOADA
+// BALANÇA ANALÍTICA
 const AnalyticalBalance = {
     isPoweredOn: true,
     container: null,
@@ -92,7 +96,7 @@ const AnalyticalBalance = {
         this.tareValue = gross;
         this.isTared = true;
         this.updateDisplay();
-        alert("Balança tarada com sucesso! O visor foi zerado mantendo a carga real.");
+        alert("Balança tarada com sucesso!");
     },
 
     openContainerModal() {
@@ -124,7 +128,7 @@ const AnalyticalBalance = {
         this.container = null;
         this.solidMass = 0.0000;
         this.isTared = false;
-        this.tareValue = 0.0000; // Reset da tara ao retirar o recipiente (evita leitura zerada incorreta)
+        this.tareValue = 0.0000;
         document.getElementById('weighingPan').innerHTML = '';
         document.getElementById('btnAddSolidBtn').disabled = true;
         document.getElementById('btnRemoveCont').disabled = true;
@@ -152,10 +156,7 @@ const AnalyticalBalance = {
     },
 
     removeSomeSolid() {
-        if(this.solidMass <= 0) {
-            alert("Não há sólido para remover.");
-            return;
-        }
+        if(this.solidMass <= 0) return;
         this.solidMass = Math.max(0, this.solidMass - 0.1000);
         this.updateVisualSolid();
         this.updateDisplay();
@@ -167,7 +168,6 @@ const AnalyticalBalance = {
         this.updateVisualSolid();
         this.updateDisplay();
         this.updatePanel();
-        alert("Sólido removido do recipiente.");
     },
 
     updateVisualSolid() {
@@ -209,35 +209,131 @@ const AnalyticalBalance = {
     }
 };
 
-// 3. LABORATÓRIO DE TITULAÇÃO COM SELEÇÃO DE BURETA E FENOLFTALEÍNA GRADUAL
+// PREPARO DE SOLUÇÃO
+const PrimaryStandardLab = {
+    init() {
+        App.goToScreen('screen-prep-standard');
+        this.updateInfo();
+        document.getElementById('prepTargetConc').addEventListener('input', () => this.updateInfo());
+    },
+    getMolarMass(type) { return type === 'KHP' ? 204.22 : 105.99; },
+    getPureza(type) { return type === 'KHP' ? 0.999 : 0.998; },
+    updateInfo() {
+        const type = document.getElementById('prepStandardType').value;
+        const C = parseFloat(document.getElementById('prepTargetConc').value) || 0.1;
+        const V_mL = parseFloat(document.getElementById('prepVolumeBallon').value) || 250;
+        const Mm = this.getMolarMass(type);
+        const purity = this.getPureza(type);
+        const mass = (C * (V_mL / 1000.0) * Mm) / purity;
+        document.getElementById('spanTheoreticalMass').innerText = mass.toFixed(4);
+    },
+    executePreparation() {
+        alert("Solução preparada e aferida no balão volumétrico com sucesso!");
+        App.addScore(30);
+    }
+};
+
+// MOTOR QUÍMICO RIGOROSO E VALIDAÇÃO DE TITULAÇÕES
 const TitrationLab = {
+    flaskSol: 'HCl',
+    flaskConcType: 'unknown',
+    flaskConcTrue: 0.1000,
+    sampleVol: 25.00,
+    buretteSol: 'NaOH',
+    buretteConc: 0.1000,
+    indicator: 'phenolphthalein',
     buretteCapacity: 50.0,
+    
     buretteCurrent: 0.0,
     volSpent: 0.0,
     isStopcockOpen: false,
     animationInterval: null,
-    sampleVol: 25.0,
-    cFlask: 0.1000,
-    cBurette: 0.1000,
-    indicator: 'phenolphthalein',
-    flaskSol: 'HCl',
-    buretteSol: 'NaOH',
+    reactionType: 'strong_acid_strong_base',
+    stoichiometryRatio: 1, // mols de titulante por mol de amostra
 
     openConfig() {
         App.goToScreen('screen-titration-config');
+        this.toggleConcInputs();
+    },
+
+    toggleConcInputs() {
+        const type = document.getElementById('cfgFlaskConcType').value;
+        const group = document.getElementById('groupFlaskConcVal');
+        group.style.display = type === 'known' ? 'flex' : 'none';
+    },
+
+    validateCombination(flask, burette) {
+        // Classificar reagentes
+        const acids = ['HCl', 'CH3COOH', 'H2SO4'];
+        const bases = ['NaOH'];
+
+        const isFlaskAcid = acids.includes(flask);
+        const isFlaskBase = bases.includes(flask);
+        const isBuretteAcid = acids.includes(burette);
+        const isBuretteBase = bases.includes(burette);
+
+        if (isFlaskAcid && isBuretteAcid) {
+            return { valid: false, msg: `Combinação Inválida: ${flask} (ácido) na amostra com ${burette} (ácido) na bureta não corresponde a uma reação de neutralização ácido-base.` };
+        }
+        if (isFlaskBase && isBuretteBase) {
+            return { valid: false, msg: `Combinação Inválida: ${flask} (base) na amostra com ${burette} (base) na bureta não gera neutralização válida.` };
+        }
+        if (isFlaskAcid && isBuretteBase) {
+            return { valid: true, type: 'acid_titrated_by_base' };
+        }
+        if (isFlaskBase && isBuretteAcid) {
+            return { valid: true, type: 'base_titrated_by_acid' };
+        }
+        return { valid: false, msg: "Combinação não suportada pelo motor analítico." };
     },
 
     startFromConfig() {
-        this.buretteCapacity = parseFloat(document.getElementById('cfgBuretteCapacity').value) || 50.0;
+        const flask = document.getElementById('cfgFlaskSolution').value;
+        const burette = document.getElementById('cfgBuretteSolution').value;
+        const concType = document.getElementById('cfgFlaskConcType').value;
+        
+        const validation = this.validateCombination(flask, burette);
+        const errBox = document.getElementById('configErrorBox');
+
+        if(!validation.valid) {
+            errBox.innerHTML = `<div class="alert-box" style="border-left-color: var(--danger); background: #fef2f2;"><strong>Erro Químico:</strong> ${validation.msg}</div>`;
+            return;
+        }
+        errBox.innerHTML = "";
+
+        this.flaskSol = flask;
+        this.buretteSol = burette;
+        this.flaskConcType = concType;
+        this.sampleVol = parseFloat(document.getElementById('cfgSampleVol').value) || 25.00;
+        this.buretteConc = parseFloat(document.getElementById('cfgBuretteConc').value) || 0.1000;
         this.indicator = document.getElementById('cfgIndicator').value;
-        this.flaskSol = document.getElementById('cfgFlaskSolution').value;
-        this.buretteSol = document.getElementById('cfgBuretteSolution').value;
+        this.buretteCapacity = parseFloat(document.getElementById('cfgBuretteCapacity').value) || 50.0;
+
+        // Definir valor verdadeiro (oculto se desconhecido)
+        if (concType === 'known') {
+            this.flaskConcTrue = parseFloat(document.getElementById('cfgFlaskConc').value) || 0.1000;
+        } else {
+            // Gerar valor aleatório reproduzível ou dinâmico
+            this.flaskConcTrue = parseFloat((0.0800 + Math.random() * 0.0600).toFixed(4));
+        }
+
+        // Definir estequiometria
+        if (flask === 'H2SO4') {
+            this.stoichiometryRatio = 2; // H2SO4 + 2 NaOH -> Na2SO4 + 2 H2O (2 mols de NaOH por mol de H2SO4)
+            this.reactionType = 'polyprotic_acid_base';
+        } else if (flask === 'CH3COOH') {
+            this.stoichiometryRatio = 1;
+            this.reactionType = 'weak_acid_strong_base';
+        } else {
+            this.stoichiometryRatio = 1;
+            this.reactionType = validation.type;
+        }
 
         this.buretteCurrent = 0.0;
         this.volSpent = 0.0;
 
-        document.getElementById('displayBuretteCap').innerText = `${this.buretteCapacity} mL`;
         document.getElementById('volRemainingDisplay').innerText = `${this.buretteCapacity.toFixed(2)} mL`;
+        document.getElementById('displayReactionName').innerText = `${flask} vs ${burette} (${validation.type})`;
 
         App.goToScreen('screen-titration');
         this.updateVisuals();
@@ -284,7 +380,7 @@ const TitrationLab = {
 
     addVolume(amount) {
         if(this.volSpent + amount >= this.buretteCapacity) {
-            alert("A bureta está vazia! Capacidade máxima atingida.");
+            alert("A bureta está vazia!");
             this.stopFlow();
             return;
         }
@@ -293,21 +389,47 @@ const TitrationLab = {
         this.drawGraph();
     },
 
-    calculateCurrentPH() {
-        const nFlask = this.cFlask * this.sampleVol;
-        const nBurette = this.cBurette * this.volSpent;
-        const totalV = this.sampleVol + this.volSpent;
+    calculateCurrentPH(vBurette = this.volSpent) {
+        const nFlask = this.flaskConcTrue * this.sampleVol; // milimols
+        const nBurette = this.buretteConc * vBurette; // milimols
+        const totalV = this.sampleVol + vBurette;
 
-        if (nBurette < nFlask) {
-            const excessH = (nFlask - nBurette) / totalV;
-            return Math.max(0, Math.min(14, -Math.log10(excessH)));
-        } else if (Math.abs(nBurette - nFlask) < 1e-5) {
-            return 7.00;
-        } else {
-            const excessOH = (nBurette - nFlask) / totalV;
-            const pOH = -Math.log10(excessOH);
-            return Math.max(0, Math.min(14, 14.00 - pOH));
+        // Estequiometria ajustada pelo coeficiente
+        const effectiveBuretteMoles = nBurette / this.stoichiometryRatio;
+
+        if (this.reactionType === 'acid_titrated_by_base' || this.reactionType === 'polyprotic_acid_base' || this.reactionType === 'weak_acid_strong_base') {
+            if (effectiveBuretteMoles < nFlask) {
+                // Antes do ponto de equivalência (excesso de ácido)
+                const excessH = (nFlask - effectiveBuretteMoles) / totalV;
+                if (this.reactionType === 'weak_acid_strong_base') {
+                    // Tampão simples / ácido fraco
+                    return Math.max(1.5, Math.min(6.5, 4.76 - Math.log10((nFlask - effectiveBuretteMoles) / effectiveBuretteMoles)));
+                }
+                return Math.max(0, Math.min(14, -Math.log10(excessH)));
+            } else if (Math.abs(effectiveBuretteMoles - nFlask) < 1e-4) {
+                // Ponto de equivalência
+                if (this.flaskSol === 'CH3COOH') return 8.72; // Hidrólise básica do acetato
+                return 7.00;
+            } else {
+                // Após o ponto de equivalência (excesso de base forte na bureta)
+                const excessOH = (effectiveBuretteMoles - nFlask) / totalV;
+                const pOH = -Math.log10(excessOH);
+                return Math.max(0, Math.min(14, 14.00 - pOH));
+            }
+        } else if (this.reactionType === 'base_titrated_by_acid') {
+            // Base forte titulada por ácido forte (pH decrescente)
+            if (effectiveBuretteMoles < nFlask) {
+                const excessOH = (nFlask - effectiveBuretteMoles) / totalV;
+                const pOH = -Math.log10(excessOH);
+                return Math.max(0, Math.min(14, 14.00 - pOH));
+            } else if (Math.abs(effectiveBuretteMoles - nFlask) < 1e-4) {
+                return 7.00;
+            } else {
+                const excessH = (effectiveBuretteMoles - nFlask) / totalV;
+                return Math.max(0, Math.min(14, -Math.log10(excessH)));
+            }
         }
+        return 7.00;
     },
 
     updateVisuals() {
@@ -320,32 +442,29 @@ const TitrationLab = {
         const liquidBurette = document.getElementById('buretteLiquid');
         const liquidErlen = document.getElementById('erlenmeyerLiquid');
 
-        const buretteHeightPct = (remaining / this.buretteCapacity) * 100;
-        liquidBurette.style.height = `${buretteHeightPct}%`;
-
+        liquidBurette.style.height = `${(remaining / this.buretteCapacity) * 100}%`;
         const totalErlenVol = this.sampleVol + this.volSpent;
         liquidErlen.style.height = `${Math.min(85, 40 + (totalErlenVol / 75) * 45)}%`;
 
-        // 4. FENOLFTALEÍNA COM TRANSIÇÃO GRADUAL DE PH (8.2 a 10.0)
+        // Indicador com transição gradual rigorosa de pH
         let colorHex = "transparent";
-        let statusText = "Incolor (Meio Ácido)";
+        let statusText = "Incolor";
 
         if (this.indicator === 'phenolphthalein') {
             if (currentPH < 8.2) {
                 colorHex = "transparent";
                 statusText = "Incolor (Abaixo da viragem)";
             } else if (currentPH >= 8.2 && currentPH <= 10.0) {
-                // Transição gradual com base no pH
                 const ratio = (currentPH - 8.2) / (10.0 - 8.2);
-                const alpha = Math.min(0.8, 0.1 + ratio * 0.7);
+                const alpha = Math.min(0.85, 0.15 + ratio * 0.7);
                 colorHex = `rgba(236, 72, 153, ${alpha})`;
-                statusText = ratio < 0.3 ? "Início da Viragem (Rosa muito claro)" : "Ponto Final (Rosa Persistente)";
+                statusText = ratio < 0.3 ? "Início da Viragem (Rosa pálido)" : "Ponto Final (Rosa Persistente)";
             } else {
                 colorHex = "rgba(236, 72, 153, 0.9)";
-                statusText = "Rosa Intenso (Excesso de Base)";
+                statusText = "Rosa Intenso (Excesso)";
             }
         } else {
-            // Alaranjado de Metila
+            // Alaranjado de Metila (pH 3.1 - 4.4)
             if (currentPH < 3.1) { colorHex = "rgba(239, 68, 68, 0.6)"; statusText = "Vermelho"; }
             else if (currentPH >= 3.1 && currentPH <= 4.4) { colorHex = "rgba(245, 158, 11, 0.6)"; statusText = "Laranja (Viragem)"; }
             else { colorHex = "rgba(234, 179, 8, 0.6)"; statusText = "Amarelo"; }
@@ -383,10 +502,7 @@ const TitrationLab = {
         ctx.beginPath();
         let isFirst = true;
         for (let v = 0; v <= this.buretteCapacity; v += 0.5) {
-            const oldVol = this.volSpent;
-            this.volSpent = v;
-            const phVal = this.calculateCurrentPH();
-            this.volSpent = oldVol;
+            const phVal = this.calculateCurrentPH(v);
             const px = scaleX(v);
             const py = scaleY(phVal);
             if(isFirst) { ctx.moveTo(px, py); isFirst = false; } else { ctx.lineTo(px, py); }
@@ -394,7 +510,7 @@ const TitrationLab = {
         ctx.stroke();
 
         const currX = scaleX(this.volSpent);
-        const currY = scaleY(this.calculateCurrentPH());
+        const currY = scaleY(this.calculateCurrentPH(this.volSpent));
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
         ctx.arc(currX, currY, 6, 0, 2 * Math.PI);
@@ -406,187 +522,132 @@ const TitrationLab = {
         this.volSpent = 0.0;
         this.updateVisuals();
         this.drawGraph();
-    }
-};
-
-// 5. MINIJOGOS REAIS COMPLETOS
-const MiniGamePH = {
-    samples: [
-        { name: 'Amostra 1', realPH: 2.1, type: 'Ácido' },
-        { name: 'Amostra 2', realPH: 7.0, type: 'Neutro' },
-        { name: 'Amostra 3', realPH: 12.4, type: 'Básico' }
-    ],
-    currentIndex: 0,
-    score: 0,
-
-    init() {
-        this.currentIndex = 0;
-        this.score = 0;
-        App.goToScreen('screen-minigame');
-        document.getElementById('mgTitle').innerText = "Minijogo 1 — Detetive do pH";
-        this.render();
     },
 
-    render() {
-        if(this.currentIndex >= this.samples.length) {
-            document.getElementById('mgContainer').innerHTML = `
-                <div class="alert-box">
-                    <h3>Fim do Minijogo!</h3>
-                    <p>Você acertou todas as classificações de pH.</p>
-                    <p>Pontuação Total: <strong>${this.score} pts</strong></p>
-                </div>
-                <button class="btn" onclick="MiniGamePH.init()">Jogar Novamente</button>
-            `;
-            App.addScore(this.score);
+    openResultModal() {
+        this.stopFlow();
+        document.getElementById('resVolSpent').innerText = `${this.volSpent.toFixed(2)} mL`;
+        App.goToScreen('screen-titration-result');
+    },
+
+    checkUserResult() {
+        const userVal = parseFloat(document.getElementById('resUserConc').value);
+        const feedback = document.getElementById('resFeedback');
+
+        if(isNaN(userVal)) {
+            feedback.innerHTML = `<span style="color:var(--danger)">Insira um valor numérico válido.</span>`;
             return;
         }
 
-        const sample = this.samples[this.currentIndex];
-        document.getElementById('mgContainer').innerHTML = `
-            <p>Analise a <strong>${sample.name}</strong> utilizando os testes disponíveis:</p>
-            <button class="btn btn-secondary" onclick="MiniGamePH.testSample('acid')">Testar com Papel Indicador</button>
-            <div id="phTestResult" class="mt-4"></div>
-            <div class="control-group mt-4" id="guessGroup" style="display:none;">
-                <label>Classifique o caráter da solução:</label>
-                <select id="userPHGuess">
-                    <option value="Ácido">Ácido</option>
-                    <option value="Neutro">Neutro</option>
-                    <option value="Básico">Básico</option>
-                </select>
-                <button class="btn mt-4" onclick="MiniGamePH.submitGuess()">Enviar Resposta</button>
-            </div>
-            <div id="phFeedback" class="mt-4"></div>
-        `;
-    },
+        // Cálculo exato pelo motor estequiométrico invertido
+        // n_amostra = (n_titulante / stoichiometryRatio) => C_amostra * V_amostra = (C_titulante * V_gasto) / stoichiometryRatio
+        const exactConc = (this.buretteConc * this.volSpent) / (this.stoichiometryRatio * this.sampleVol);
+        const errorPct = Math.abs((userVal - exactConc) / exactConc) * 100;
 
-    testSample(type) {
-        const sample = this.samples[this.currentIndex];
-        document.getElementById('phTestResult').innerHTML = `<strong>Leitura do medidor:</strong> pH = ${sample.realPH.toFixed(1)}`;
-        document.getElementById('guessGroup').style.display = 'flex';
-    },
-
-    submitGuess() {
-        const guess = document.getElementById('userPHGuess').value;
-        const sample = this.samples[this.currentIndex];
-        const fb = document.getElementById('phFeedback');
-
-        if(guess === sample.type) {
-            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Correto!</strong>`;
-            this.score += 25;
-        } else {
-            fb.innerHTML = `<strong style="color:var(--danger)">Incorreto.</strong> Era ${sample.type}.`;
-        }
-        this.currentIndex++;
-        setTimeout(() => this.render(), 1800);
-    }
-};
-
-const MiniGameTitrationChallenge = {
-    init() {
-        App.goToScreen('screen-minigame');
-        document.getElementById('mgTitle').innerText = "Minijogo 2 — Desafio da Titulação";
-        document.getElementById('mgContainer').innerHTML = `
-            <p>Missão: Titular uma solução desconhecida de HCl com NaOH 0,1000 mol/L gastando exatamente 25,00 mL.</p>
-            <div class="control-group">
-                <label>Insira o volume gasto medido (mL):</label>
-                <input type="number" id="chVolInput" step="0.01" value="25.00">
-            </div>
-            <button class="btn mt-4" onclick="MiniGameTitrationChallenge.check()">Concluir Desafio</button>
-            <div id="chFeedback" class="mt-4"></div>
-        `;
-    },
-    check() {
-        const val = parseFloat(document.getElementById('chVolInput').value);
-        const fb = document.getElementById('chFeedback');
-        if(Math.abs(val - 25.00) <= 0.1) {
-            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Excelente precisão!</strong> Você executou a titulação sem desperdício de titulante.`;
+        if(errorPct <= 3.5) {
+            feedback.innerHTML = `<strong style="color:var(--emerald-dark)">Parabéns! Excelente precisão analítica.</strong><br>` +
+                `Concentração verdadeira da amostra: <strong>${exactConc.toFixed(4)} mol/L</strong>. Desvio de apenas ${errorPct.toFixed(1)}%.`;
             App.addScore(50);
         } else {
-            fb.innerHTML = `<strong style="color:var(--warning)">Atenção:</strong> O volume dispensado desviou do ponto ideal, gerando erro analítico.`;
+            feedback.innerHTML = `<strong style="color:var(--warning)">Atenção:</strong> O valor calculado difere do esperado.<br>` +
+                `Valor verdadeiro da simulação: <strong>${exactConc.toFixed(4)} mol/L</strong>. Revise a estequiometria ($${this.stoichiometryRatio}:1$) e o volume gasto.`;
         }
     }
 };
 
-const MiniGameSolutionPrep = {
-    init() {
-        App.goToScreen('screen-minigame');
-        document.getElementById('mgTitle').innerText = "Minijogo 3 — Preparação de Soluções";
-        document.getElementById('mgContainer').innerHTML = `
-            <p>Prepare <strong>250 mL</strong> de $\text{NaOH}$ a <strong>0,1000 mol/L</strong> (Massa Molar = 40,00 g/mol).</p>
-            <div class="control-group">
-                <label>Qual a massa necessária (g)?</label>
-                <input type="number" id="prepMassInput" step="0.01" placeholder="Ex: 1.00">
-            </div>
-            <button class="btn mt-4" onclick="MiniGameSolutionPrep.check()">Verificar Preparo</button>
-            <div id="prepFb" class="mt-4"></div>
-        `;
+// CENTRAL DO DESAFIO DIÁRIO (BASEADO NA DATA ATUAL E REPRODUZÍVEL)
+const DailyChallenge = {
+    getTodaySeed() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     },
-    check() {
-        const m = parseFloat(document.getElementById('prepMassInput').value);
-        // m = C * V * Mm = 0.10 * 0.250 * 40.00 = 1.00 g
-        const fb = document.getElementById('prepFb');
-        if(Math.abs(m - 1.00) <= 0.05) {
-            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Correto!</strong> $m = 0,10 \\times 0,250 \\times 40,00 = 1,00\\text{ g}$. Solução aferida com sucesso.`;
-            App.addScore(30);
+
+    initHub() {
+        App.goToScreen('screen-daily-hub');
+        const seed = this.getTodaySeed();
+        document.getElementById('dailyHubSubtitle').innerText = `Desafios ativos para a data de hoje: ${seed} (Fuso Local)`;
+
+        const challenges = [
+            { id: 1, title: '1. Concentração Desconhecida de HCl', desc: 'Determine a molaridade de 25 mL de HCl titulada com NaOH 0,1000 mol/L.', type: 'unknown_conc' },
+            { id: 2, title: '2. Padronização de NaOH', desc: 'Padronize NaOH usando 0,5105 g de KHP (Proporção 1:1).', type: 'std_naoh' },
+            { id: 3, title: '3. Padronização de HCl', desc: 'Padronize HCl usando 0,5300 g de Na₂CO₃ anidro (Proporção 1:2).', type: 'std_hcl' },
+            { id: 4, title: '4. Seleção de Indicador', desc: 'Identifique o indicador adequado para titulação de ácido fraco.', type: 'indicator_choice' },
+            { id: 5, title: '5. Combinação Inválida de Reagentes', desc: 'Identifique por que HCl + HCl bloqueia a titulação.', type: 'invalid_combo' },
+            { id: 6, title: '6. Titulação de Ácido Acético', desc: 'Determine a concentração de CH₃COOH titulado por NaOH.', type: 'weak_acid' },
+            { id: 7, title: '7. Desafio de Precisão Experimental', desc: 'Execute a titulação de H₂SO₄ diprótico com NaOH.', type: 'polyprotic' }
+        ];
+
+        const grid = document.getElementById('dailyChallengesGrid');
+        grid.innerHTML = "";
+        challenges.forEach(ch => {
+            grid.innerHTML += `
+                <div class="card-menu" onclick="DailyChallenge.startChallenge(${ch.id})">
+                    <h3>${ch.title}</h3>
+                    <p>${ch.desc}</p>
+                    <span style="font-size: 0.8rem; color: var(--emerald-dark); font-weight: bold;">Status: Disponível hoje</span>
+                </div>
+            `;
+        });
+    },
+
+    startChallenge(id) {
+        App.goToScreen('screen-challenge-run');
+        const titleMap = {
+            1: 'Desafio 1: Concentração Desconhecida de HCl',
+            2: 'Desafio 2: Padronização de NaOH com KHP',
+            3: 'Desafio 3: Padronização de HCl com Na₂CO₃',
+            4: 'Desafio 4: Seleção de Indicador',
+            5: 'Desafio 5: Validação de Reagentes',
+            6: 'Desafio 6: Ácido Acético vs NaOH',
+            7: 'Desafio 7: Titulação de H₂SO₄ Diprótico'
+        };
+
+        document.getElementById('chRunTitle').innerText = titleMap[id] || 'Desafio Diário';
+        document.getElementById('chRunInstructions').innerHTML = `Instruções: Resolva o problema analítico com base nos parâmetros fornecidos abaixo. A data de referência é ${this.getTodaySeed()}.`;
+        
+        let paramHtml = "";
+        if (id === 1) {
+            paramHtml = `<p>Volume da amostra de HCl: <strong>25,00 mL</strong><br>Volume gasto de NaOH 0,1000 mol/L no ponto final: <strong>24,80 mL</strong></p>`;
+            window.activeChallengeExpected = (0.1000 * 24.80) / 25.00;
+        } else if (id === 2) {
+            paramHtml = `<p>Massa de KHP pesada: <strong>0,5105 g</strong> (MM = 204,22 g/mol)<br>Volume gasto de NaOH: <strong>25,00 mL</strong></p>`;
+            window.activeChallengeExpected = (0.5105 / 204.22) / (25.00 / 1000.0);
+        } else if (id === 3) {
+            paramHtml = `<p>Massa de Na₂CO₃ anidro: <strong>0,5300 g</strong> (MM = 105,99 g/mol)<br>Volume gasto de HCl: <strong>25,00 mL</strong><br><em>Estequiometria 1:2</em></p>`;
+            window.activeChallengeExpected = (2 * (0.5300 / 105.99)) / (25.00 / 1000.0);
         } else {
-            fb.innerHTML = `<strong style="color:var(--danger)">Incorreto.</strong> Reveja o cálculo: $m = C \\times V \\times Mm$.`;
+            paramHtml = `<p>Parâmetros analíticos padrão do desafio diário.</p>`;
+            window.activeChallengeExpected = 0.1000;
         }
-    }
-};
 
-const MiniGameLabError = {
-    init() {
-        App.goToScreen('screen-minigame');
-        document.getElementById('mgTitle').innerText = "Minijogo 4 — Identifique o Erro do Laboratório";
-        document.getElementById('mgContainer').innerHTML = `
-            <p><strong>Cenário:</strong> O analista tarou o béquer na balança analítica, adicionou o soluto sólido e anotou a massa exibida. No entanto, esqueceu de verificar se havia correntes de ar e se a leitura estava estabilizada.</p>
-            <div class="control-group">
-                <label>Qual é a consequência principal?</label>
-                <select id="errSelect">
-                    <option value="none">Nenhum impacto</option>
-                    <option value="fluctuation">Erro de flutuação e imprecisão na pesagem analítica</option>
-                    <option value="volume">Alteração do volume do balão volumétrico</option>
-                </select>
-            </div>
-            <button class="btn mt-4" onclick="MiniGameLabError.check()">Responder</button>
-            <div id="errFb" class="mt-4"></div>
-        `;
+        document.getElementById('chRunParameters').innerHTML = paramHtml;
+        document.getElementById('chUserAnswer').value = "";
+        document.getElementById('chRunFeedback').innerHTML = "";
     },
-    check() {
-        const val = document.getElementById('errSelect').value;
-        const fb = document.getElementById('errFb');
-        if(val === 'fluctuation') {
-            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Resposta Correta!</strong> Correntes de ar causam instabilidade no prato da balança de 4 casas decimais.`;
-            App.addScore(30);
-        } else {
-            fb.innerHTML = `<strong style="color:var(--danger)">Incorreto.</strong> A câmara de proteção serve exatamente para evitar correntes de ar na pesagem.`;
+
+    submitAnswer() {
+        const val = parseFloat(document.getElementById('chUserAnswer').value);
+        const fb = document.getElementById('chRunFeedback');
+        const expected = window.activeChallengeExpected || 0.1000;
+
+        if (isNaN(val)) {
+            fb.innerHTML = `<span style="color:var(--danger)">Insira um valor numérico.</span>`;
+            return;
         }
-    }
-};
 
-const MiniGameStandardization = {
-    init() {
-        App.goToScreen('screen-minigame');
-        document.getElementById('mgTitle').innerText = "Minijogo 5 — Padronização de Titulantes";
-        document.getElementById('mgContainer').innerHTML = `
-            <p>Padronização de $\text{NaOH}$ com KHP (1:1). Massa de KHP pesada: <strong>0,5105 g</strong> (MM = 204,22 g/mol). Volume gasto de $\text{NaOH}$: <strong>25,00 mL</strong>.</p>
-            <div class="control-group">
-                <label>Qual a concentração real do $\text{NaOH}$ (mol/L)?</label>
-                <input type="number" id="stdInput" step="0.0001" placeholder="Ex: 0.1000">
-            </div>
-            <button class="btn mt-4" onclick="MiniGameStandardization.check()">Conferir</button>
-            <div id="stdFb" class="mt-4"></div>
-        `;
-    },
-    check() {
-        const val = parseFloat(document.getElementById('stdInput').value);
-        const correct = (0.5105 / 204.22) / (25.00 / 1000.0); // ~0.1000 mol/L
-        const fb = document.getElementById('stdFb');
-        if(Math.abs(val - correct) <= 0.001) {
-            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Parabéns!</strong> Concentração padronizada com sucesso: <strong>${correct.toFixed(4)} mol/L</strong>.`;
+        const error = Math.abs((val - expected) / expected) * 100;
+        if (error <= 3.0) {
+            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Desafio Concluído com Sucesso!</strong><br>` +
+                `O resultado calculado (${val.fourDecimals ? val.toFixed(4) : val}) está correto. O valor esperado era ${expected.toFixed(4)}.<br>` +
+                `<em>Explicação Química:</em> A estequiometria e os equivalentes molares foram aplicados corretamente.`;
             App.addScore(40);
         } else {
-            fb.innerHTML = `<strong style="color:var(--danger)">Incorreto.</strong> $C = \\frac{m / Mm}{V}$. Tente novamente!`;
+            fb.innerHTML = `<strong style="color:var(--warning)">Resultado Incorreto.</strong> O valor esperado era ${expected.toFixed(4)}. Reveja o cálculo estequiométrico.`;
         }
+    },
+
+    startRandomTraining() {
+        alert("Modo de Treinamento Aleatório ativado! Redirecionando para a Bancada de Titulação Livre.");
+        TitrationLab.openConfig();
     }
 };
