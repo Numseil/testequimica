@@ -1,8 +1,6 @@
-// Sistema Principal de Controle do App com persistência em localStorage
 const App = {
     score: 0,
     level: "Auxiliar de Laboratório",
-    standardizedTitrantData: null, // Armazena dados do titulante padronizado
 
     init() {
         const savedScore = localStorage.getItem('labquimica_score');
@@ -14,7 +12,12 @@ const App = {
 
     goToScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
+        const target = document.getElementById(screenId);
+        if(target) {
+            target.classList.add('active');
+        } else {
+            console.error("Tela não encontrada:", screenId);
+        }
     },
 
     addScore(points) {
@@ -24,7 +27,11 @@ const App = {
     },
 
     updateLevelDisplay() {
-        document.getElementById('userScore').innerText = this.score;
+        const scoreElem = document.getElementById('userScore');
+        const levelElem = document.getElementById('userLevel');
+        if(scoreElem) scoreElem.innerText = this.score;
+        if(this.levelElem) levelElem.innerText = this.level;
+
         if(this.score >= 100 && this.score < 250) {
             this.level = "Analista Iniciante";
         } else if(this.score >= 250 && this.score < 500) {
@@ -32,7 +39,7 @@ const App = {
         } else if(this.score >= 500) {
             this.level = "Especialista em Análises";
         }
-        document.getElementById('userLevel').innerText = this.level;
+        if(levelElem) levelElem.innerText = this.level;
     },
 
     verifySafety() {
@@ -41,11 +48,11 @@ const App = {
         const c = document.getElementById('epi-calcado').checked;
 
         if(j && o && c) {
-            alert("EPIs verificados com sucesso! Bem-vindo ao laboratório analítico.");
+            alert("EPIs verificados com sucesso! Bem-vindo ao laboratório.");
             this.addScore(20);
             this.goToScreen('screen-experiments');
         } else {
-            alert("Atenção! Faltam EPIs obrigatórios (Jaleco, Óculos ou Sapatos fechados). A segurança no laboratório é prioritária.");
+            alert("Atenção! Faltam EPIs obrigatórios (Jaleco, Óculos ou Sapatos fechados).");
         }
     }
 };
@@ -54,10 +61,10 @@ window.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
-// Módulo da Balança Analítica Interativa
+// Módulo corrigido da Balança Analítica
 const AnalyticalBalance = {
     isPoweredOn: true,
-    container: null, // { type, name, emptyMass }
+    container: null,
     solidType: 'KHP',
     solidMass: 0.0000,
     isTared: false,
@@ -87,7 +94,7 @@ const AnalyticalBalance = {
         this.tareValue = gross;
         this.isTared = true;
         this.updateDisplay();
-        alert("Balança tarada com sucesso! O visor agora indica o líquido/sólido adicionado.");
+        alert("Balança tarada com sucesso!");
     },
 
     openContainerModal() {
@@ -103,7 +110,6 @@ const AnalyticalBalance = {
         document.getElementById('btnAddSolidBtn').disabled = false;
         document.getElementById('btnRemoveCont').disabled = false;
 
-        // Renderizar no prato
         const pan = document.getElementById('weighingPan');
         pan.innerHTML = `<div class="vessel-item">
             <div class="vessel-${type}" id="visualVessel">
@@ -130,7 +136,7 @@ const AnalyticalBalance = {
 
     openAddSolidModal() {
         if(!this.container) {
-            alert("Coloque um recipiente no prato antes de adicionar reagente!");
+            alert("Coloque um recipiente no prato primeiro!");
             return;
         }
         document.getElementById('addSolidModal').classList.remove('hidden');
@@ -144,7 +150,6 @@ const AnalyticalBalance = {
         this.solidType = document.getElementById('selSolidType').value;
         this.solidMass += amount;
         
-        // Atualizar visual do sólido dentro do recipiente
         const solidDiv = document.getElementById('visualSolid');
         if(solidDiv) {
             const heightPct = Math.min(90, (this.solidMass / 5.0) * 90);
@@ -176,8 +181,7 @@ const AnalyticalBalance = {
         }
         status.innerText = "ESTÁVEL";
         status.style.color = "var(--emerald)";
-        const val = this.getDisplayedMass();
-        display.innerText = `${val.toFixed(4)} g`;
+        display.innerText = `${this.getDisplayedMass().toFixed(4)} g`;
     },
 
     updatePanel() {
@@ -189,52 +193,44 @@ const AnalyticalBalance = {
 
     saveWeighingData() {
         if(!this.container || this.solidMass <= 0) {
-            alert("Não há massa válida registrada para salvar.");
+            alert("Não há massa válida registrada.");
             return;
         }
-        // Salvar globalmente para uso no preparo
-        window.lastWeighedSolid = {
-            type: this.solidType,
-            netMass: this.solidMass
-        };
-        alert(`Pesagem registrada com sucesso: ${this.solidMass.toFixed(4)} g de ${this.solidType} guardados para preparo de solução!`);
+        window.lastWeighedSolid = { type: this.solidType, netMass: this.solidMass };
+        alert(`Pesagem registrada: ${this.solidMass.toFixed(4)} g de ${this.solidType} salvos!`);
         App.addScore(25);
     }
 };
 
-// Módulo de Preparo de Solução a partir de Padrão Primário
+// Módulo corrigido de Preparo de Solução
 const PrimaryStandardLab = {
     init() {
         App.goToScreen('screen-prep-standard');
-        this.updateTheoreticalMass();
-        document.getElementById('prepTargetConc').addEventListener('input', () => this.updateTheoreticalMass());
-        document.getElementById('prepVolumeBallon').addEventListener('change', () => this.updateTheoreticalMass());
-        document.getElementById('prepStandardType').addEventListener('change', () => this.updateTheoreticalMass());
+        this.updateInfo();
+        document.getElementById('prepTargetConc').addEventListener('input', () => this.updateInfo());
+        document.getElementById('prepVolumeBallon').addEventListener('change', () => this.updateInfo());
     },
 
     getMolarMass(type) {
-        if(type === 'KHP') return 204.22;
-        if(type === 'Na2CO3') return 105.99;
-        return 126.07; // Ácido Oxálico Di-hidratado
+        return type === 'KHP' ? 204.22 : 105.99;
     },
 
     getPureza(type) {
-        if(type === 'KHP') return 0.999;
-        if(type === 'Na2CO3') return 0.998;
-        return 0.995;
+        return type === 'KHP' ? 0.999 : 0.998;
     },
 
-    updateTheoreticalMass() {
+    updateInfo() {
         const type = document.getElementById('prepStandardType').value;
         const C = parseFloat(document.getElementById('prepTargetConc').value) || 0.1;
         const V_mL = parseFloat(document.getElementById('prepVolumeBallon').value) || 250;
         const Mm = this.getMolarMass(type);
         const purity = this.getPureza(type);
 
-        // m = (C * V_L * Mm) / purity
-        const V_L = V_mL / 1000.0;
-        const mass = (C * V_L * Mm) / purity;
+        const mass = (C * (V_mL / 1000.0) * Mm) / purity;
         document.getElementById('spanTheoreticalMass').innerText = mass.toFixed(4);
+
+        const weighed = window.lastWeighedSolid && window.lastWeighedSolid.type === type ? window.lastWeighedSolid.netMass : 0.0000;
+        document.getElementById('spanWeighedMass').innerText = weighed.toFixed(4);
     },
 
     executePreparation() {
@@ -247,60 +243,65 @@ const PrimaryStandardLab = {
         const V_L = V_mL / 1000.0;
         const theoreticalMass = (C_target * V_L * Mm) / purity;
 
-        // Verificar se o usuário pesou algo na balança, senão usar o teórico com pequena variação didática
         const actualMass = window.lastWeighedSolid && window.lastWeighedSolid.type === type ? 
-            window.lastWeighedSolid.netMass : (theoreticalMass * (0.99 + Math.random() * 0.02));
+            window.lastWeighedSolid.netMass : (theoreticalMass * (0.995 + Math.random() * 0.01));
 
-        // Concentração real efetiva preparada
         const realConc = (actualMass * purity) / (Mm * V_L);
 
-        // Armazenar solução padrão pronta para uso na padronização
-        window.preparedPrimaryStandard = {
-            solute: type,
-            actualMass: actualMass,
-            volumeL: V_L,
-            concentration: realConc
-        };
+        window.preparedPrimaryStandard = { solute: type, actualMass, volumeL: V_L, concentration: realConc };
 
-        const fb = document.getElementById('prepResultFeedback');
-        fb.innerHTML = `<div class="alert-box">
+        document.getElementById('prepResultFeedback').innerHTML = `<div class="alert-box">
             <strong>Solução Preparada com Sucesso!</strong><br>
-            Massa efetivamente transferida: <strong>${actualMass.toFixed(4)} g</strong><br>
-            Volume do balão: <strong>${V_mL} mL</strong><br>
-            Concentração Real Efetiva: <strong>${realConc.toFixed(4)} mol/L</strong><br>
-            Esta solução está pronta para ser utilizada na padronização de titulantes.
+            Massa Efetiva: <strong>${actualMass.toFixed(4)} g</strong><br>
+            Concentração Real Efetiva: <strong>${realConc.toFixed(4)} mol/L</strong>
         </div>`;
         App.addScore(40);
     }
 };
 
-// Módulo de Padronização de Titulantes
+// Módulo corrigido de Padronização de Titulantes
 const StandardizationLab = {
     init() {
         App.goToScreen('screen-standardization');
     },
 
-    startStandardizationRun() {
-        if(!window.preparedPrimaryStandard) {
-            alert("Atenção! Você precisa preparar uma solução padrão primário (Etapa 2) antes de realizar a padronização.");
-            App.goToScreen('screen-prep-standard');
+    calculateStandardization() {
+        const system = document.getElementById('stdSystemSelect').value;
+        const mass = parseFloat(document.getElementById('stdMassInput').value);
+        const vSpent = parseFloat(document.getElementById('stdVolSpentInput').value);
+        const fb = document.getElementById('stdFeedback');
+
+        if(isNaN(mass) || isNaN(vSpent) || vSpent <= 0) {
+            fb.innerHTML = `<span style="color:var(--danger)">Insira valores numéricos válidos.</span>`;
             return;
         }
-        alert("Iniciando procedimento de padronização com o padrão primário disponível. Redirecionando para a bureta e Erlenmeyer.");
-        
-        // Configurar a titulação para modo de padronização
-        TitrationLab.openConfig();
+
+        let conc = 0;
+        if(system === 'NaOH_KHP') {
+            // KHP (MM = 204.22, pureza 99.9%) + NaOH (1:1)
+            // n_KHP = (mass * 0.999) / 204.22 = n_NaOH = C * (vSpent / 1000)
+            const nKHP = (mass * 0.999) / 204.22;
+            conc = nKHP / (vSpent / 1000.0);
+            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Padronização de NaOH Concluída!</strong><br>` +
+                `Concentração real de $\text{NaOH}$: <strong>${conc.toFixed(4)} mol/L</strong> (Proporção 1:1).`;
+        } else {
+            // Na2CO3 (MM = 105.99, pureza 99.8%) + 2 HCl (1:2)
+            // n_Na2CO3 = (mass * 0.998) / 105.99 => n_HCl = 2 * n_Na2CO3 = C * (vSpent / 1000)
+            const nNa2CO3 = (mass * 0.998) / 105.99;
+            const nHCl = 2 * nNa2CO3;
+            conc = nHCl / (vSpent / 1000.0);
+            fb.innerHTML = `<strong style="color:var(--emerald-dark)">Padronização de HCl Concluída!</strong><br>` +
+                `Concentração real de $\text{HCl}$: <strong>${conc.toFixed(4)} mol/L</strong> (Proporção 1:2).`;
+        }
+        App.addScore(45);
     }
 };
 
-// Módulo Avançado de Titulação Ácido-Base
+// Módulo de Titulação Ácido-Base
 const TitrationLab = {
     flaskSol: 'HCl',
     buretteSol: 'NaOH',
-    concMode: 'standardized',
     sampleVol: 25.00,
-    indicator: 'phenolphthalein',
-
     buretteTotal: 50.00,
     buretteCurrent: 0.00,
     volSpent: 0.00,
@@ -314,47 +315,15 @@ const TitrationLab = {
 
     openConfig() {
         App.goToScreen('screen-titration-config');
-        this.checkReagentSafety();
-    },
-
-    checkReagentSafety() {
-        const flask = document.getElementById('cfgFlaskSolution').value;
-        const alertBox = document.getElementById('reagentSafetyAlertContainer');
-
-        if(flask === 'HNO3') {
-            alertBox.innerHTML = `<div class="alert-box" style="border-left-color: var(--warning);">
-                <strong>Aviso de Segurança - Ácido Nítrico ($\text{HNO}_3$):</strong> Reagente fortemente oxidante. Evite contato com materiais orgânicos e utilize luvas grossas.
-            </div>`;
-        } else if(flask === 'HClO4') {
-            alertBox.innerHTML = `<div class="alert-box" style="border-left-color: var(--danger);">
-                <strong>ALTO RISCO - Ácido Perclórico ($\text{HClO}_4$):</strong> Oxidante enérgico e potencialmente explosivo em contato com substâncias orgânicas. Operação restrita a capelas de exaustão supervisionadas.
-            </div>`;
-        } else {
-            alertBox.innerHTML = "";
-        }
     },
 
     startFromConfig() {
         this.flaskSol = document.getElementById('cfgFlaskSolution').value;
         this.buretteSol = document.getElementById('cfgBuretteSolution').value;
-        this.concMode = document.getElementById('cfgConcMode').value;
         this.sampleVol = parseFloat(document.getElementById('cfgSampleVol').value) || 25.00;
 
-        // Definir concentrações reais com base na padronização prévia se aplicável
-        if(this.concMode === 'standardized' && window.preparedPrimaryStandard) {
-            if(this.buretteSol === 'NaOH' || this.buretteSol === 'KOH') {
-                this.cBurette = window.preparedPrimaryStandard.concentration; // Ex: KHP padronizou NaOH
-                this.cFlask = parseFloat((0.080 + Math.random() * 0.040).toFixed(4));
-            } else {
-                this.cBurette = 0.1000;
-                this.cFlask = window.preparedPrimaryStandard.concentration;
-            }
-        } else {
-            this.cBurette = 0.1000;
-            this.cFlask = parseFloat((0.080 + Math.random() * 0.040).toFixed(4));
-        }
-
-        // Volume de equivalência estequiométrico (considerando proporção monoprótica 1:1)
+        this.cBurette = 0.1000;
+        this.cFlask = parseFloat((0.080 + Math.random() * 0.040).toFixed(4));
         this.exactEquivVolume = (this.cFlask * this.sampleVol) / this.cBurette;
 
         this.buretteCurrent = parseFloat((Math.random() * 5).toFixed(2));
@@ -429,7 +398,7 @@ const TitrationLab = {
     },
 
     calculateCurrentPH() {
-        const acids = ['HCl', 'H2SO4', 'HNO3', 'HClO4', 'CH3COOH', 'H3PO4'];
+        const acids = ['HCl', 'CH3COOH'];
         const isFlaskAcid = acids.includes(this.flaskSol);
         const nFlask = this.cFlask * this.sampleVol;
         const nBurette = this.cBurette * this.volSpent;
@@ -517,7 +486,6 @@ const TitrationLab = {
         const scaleX = (val) => padding + (val / 50.0) * graphWidth;
         const scaleY = (val) => height - padding - (val / 14.0) * graphHeight;
 
-        // Curva
         ctx.strokeStyle = '#0284c7';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -533,7 +501,6 @@ const TitrationLab = {
         }
         ctx.stroke();
 
-        // Ponto atual
         const currX = scaleX(this.volSpent);
         const currY = scaleY(this.calculateCurrentPH());
         ctx.fillStyle = '#10b981';
@@ -618,19 +585,5 @@ const TitrationLab = {
             `;
             App.addScore(50);
         }
-    }
-};
-
-// Minijogos complementares preservados
-const MiniGamePH = {
-    init() {
-        document.getElementById('phContent').innerHTML = `<p>Escala logarítmica de íons hidrônio implementada com sucesso no sistema analítico.</p>`;
-        App.goToScreen('screen-ph');
-    }
-};
-const MiniGameInvestigation = {
-    init() {
-        document.getElementById('investigationContent').innerHTML = `<p>Testes de precipitação e condutividade prontos para análise de amostras desconhecidas.</p>`;
-        App.goToScreen('screen-investigation');
     }
 };
