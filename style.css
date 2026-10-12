@@ -151,7 +151,7 @@ p {
     margin-bottom: 0.5rem;
 }
 
-/* Estilos da Balança Analítica */
+/* Balança Analítica */
 .balance-bench {
     background: #e2e8f0;
     border-radius: 8px;
@@ -288,7 +288,7 @@ p {
     transition: height 0.2s;
 }
 
-/* Laboratório de Titulação e Comuns */
+/* Laboratório de Titulação */
 .lab-container {
     display: grid;
     grid-template-columns: 1fr 350px;
