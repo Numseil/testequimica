@@ -246,7 +246,6 @@ p {
     align-items: flex-end;
 }
 
-/* Recipientes na Balança */
 .vessel-item {
     position: absolute;
     bottom: 12px;
