@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LabQuímica — Simulador Interativo de Laboratório</title>
+    <title>LabQuímica — Simulador Interativo de Laboratório Analítico</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <header>
-        <h1>🧪 LabQuímica <span style="font-size: 0.9rem; font-weight: normal; opacity: 0.9;">| Ensino Médio Técnico</span></h1>
+        <h1>🧪 LabQuímica <span style="font-size: 0.9rem; font-weight: normal; opacity: 0.9;">| Laboratório Analítico Avançado</span></h1>
         <div class="user-stats">
             <div>Nível: <strong id="userLevel">Auxiliar de Laboratório</strong></div>
             <div>Pontos: <strong id="userScore">0</strong> pts</div>
@@ -19,25 +19,25 @@
     <main>
         <!-- TELA INICIAL -->
         <div id="screen-home" class="screen active">
-            <h2>Bem-vindo ao Laboratório Virtual</h2>
-            <p>Este simulador interativo foi desenvolvido para estudantes de Técnico em Química realizarem práticas laboratoriais seguras, com cálculos rigorosos, análise estatística de resultados e simulações físico-químicas em tempo real.</p>
+            <h2>Bem-vindo ao Laboratório Analítico Virtual</h2>
+            <p>Este simulador avançado permite realizar pesagens precisas em balança analítica, preparo de soluções padrão primário, padronização de titulantes e titulações rigorosas com controle completo de reagentes.</p>
             
             <div class="alert-box">
-                <strong>Aviso Pedagógico:</strong> Esta é uma simulação educacional interativa. Siga sempre os protocolos de segurança reais supervisionados por seu docente.
+                <strong>Aviso de Segurança:</strong> Reagentes fortes (como $\text{HNO}_3$ e $\text{HClO}_4$) possuem propriedades oxidantes severas. Utilize sempre os EPIs obrigatórios.
             </div>
 
             <div class="grid-menu">
                 <div class="card-menu" onclick="App.goToScreen('screen-safety')">
-                    <h3>🛡️ 1. Normas de Segurança</h3>
-                    <p>Verifique os EPIs obrigatórios antes de iniciar qualquer procedimento no laboratório.</p>
+                    <h3>🛡️ 1. Normas de Segurança e EPIs</h3>
+                    <p>Verificação obrigatória de jaleco, óculos de proteção e calçados fechados.</p>
                 </div>
                 <div class="card-menu" onclick="App.goToScreen('screen-experiments')">
-                    <h3>🔬 2. Menu de Experimentos</h3>
-                    <p>Acesse a Titulação Ácido-Base completa, Medição de pH, Diluição, Estequiometria, Preparo de Soluções e Investigação.</p>
+                    <h3>🔬 2. Menu de Experimentos e Análises</h3>
+                    <p>Acesse a Balança Analítica, Preparo de Soluções, Padronização e Titulações Avançadas.</p>
                 </div>
                 <div class="card-menu" onclick="App.goToScreen('screen-glossary')">
-                    <h3>📖 3. Glossário e Conceitos</h3>
-                    <p>Consulte termos técnicos, equivalência, ponto final e grandezas químicas.</p>
+                    <h3>📖 3. Catálogo e Glossário Técnico</h3>
+                    <p>Consulte reagentes, padrões primários, massas molares e constantes de dissociação ($K_a$).</p>
                 </div>
             </div>
         </div>
@@ -45,13 +45,13 @@
         <!-- TELA DE SEGURANÇA -->
         <div id="screen-safety" class="screen">
             <h2>Equipamentos de Proteção Individual (EPI)</h2>
-            <p>A segurança é a primeira etapa de qualquer análise química. Selecione os itens obrigatórios para liberação da bancada:</p>
+            <p>Selecione os itens de segurança obrigatórios para liberar o acesso à bancada analítica:</p>
             
             <div class="safety-checklist">
                 <label class="checkbox-label"><input type="checkbox" id="epi-jaleco"> Jaleco de algodão de manga longa</label>
                 <label class="checkbox-label"><input type="checkbox" id="epi-oculos"> Óculos de proteção ampla com vedação lateral</label>
                 <label class="checkbox-label"><input type="checkbox" id="epi-calcado"> Sapatos fechados sem aberturas</label>
-                <label class="checkbox-label"><input type="checkbox" id="epi-luvas"> Luvas de nitrilo (quando manuseando reagentes corrosivos)</label>
+                <label class="checkbox-label"><input type="checkbox" id="epi-luvas"> Luvas de nitrilo para manipulação de ácidos/bases</label>
             </div>
 
             <div class="flex-row mt-4">
@@ -62,33 +62,33 @@
 
         <!-- MENU DE EXPERIMENTOS -->
         <div id="screen-experiments" class="screen">
-            <h2>Menu de Experimentos e Minijogos</h2>
-            <p>Escolha a prática que deseja realizar hoje:</p>
+            <h2>Menu de Procedimentos Analíticos</h2>
+            <p>Selecione a etapa experimental que deseja realizar:</p>
 
             <div class="grid-menu">
+                <div class="card-menu" onclick="AnalyticalBalance.init()">
+                    <h3>⚖️ 1. Balança Analítica Interativa</h3>
+                    <p>Utilize a balança de 4 casas decimais com funções de tara, zero, recipientes e adição gradual de sólidos.</p>
+                </div>
+                <div class="card-menu" onclick="PrimaryStandardLab.init()">
+                    <h3>🧪 2. Preparo de Solução (Padrão Primário)</h3>
+                    <p>Pese KHP, Ácido Oxálico ou $\text{Na}_2\text{CO}_3$ considerando a pureza e transfira para balão volumétrico.</p>
+                </div>
+                <div class="card-menu" onclick="StandardizationLab.init()">
+                    <h3>🎯 3. Padronização de Titulantes</h3>
+                    <p>Determine a concentração real de $\text{NaOH}$ ou $\text{HCl}$ usando padrões primários pesados.</p>
+                </div>
                 <div class="card-menu" onclick="TitrationLab.openConfig()">
-                    <h3>🧪 Titulação Ácido-Base (Personalizável)</h3>
-                    <p>Configure reagentes, concentrações, indicadores e realize titulações com gráfico de pH em tempo real.</p>
+                    <h3>⚗️ 4. Titulação Ácido-Base Completa</h3>
+                    <p>Realize titulações avançadas com múltiplos ácidos/bases, indicadores e curva de pH em tempo real.</p>
                 </div>
                 <div class="card-menu" onclick="MiniGamePH.init()">
-                    <h3>📊 Medição de Escala de pH</h3>
-                    <p>Identifique o caráter ácido/básico de soluções desconhecidas com indicador universal e medidor digital.</p>
-                </div>
-                <div class="card-menu" onclick="MiniGameDilution.init()">
-                    <h3>💧 Diluição de Soluções</h3>
-                    <p>Prepare soluções diluídas utilizando a equação C₁V₁ = C₂V₂ com balão volumétrico.</p>
-                </div>
-                <div class="card-menu" onclick="MiniGameStoich.init()">
-                    <h3>⚖️ Estequiometria e Reagente Limitante</h3>
-                    <p>Calcule rendimentos, massas e identifique o reagente limitante em reações balanceadas.</p>
-                </div>
-                <div class="card-menu" onclick="MiniGamePrep.init()">
-                    <h3>🧫 Preparo de Solução Sólida</h3>
-                    <p>Pese massas em balança analítica, dissolva e aferir balão volumétrico com precisão.</p>
+                    <h3>📊 5. Minijogo de Escala de pH</h3>
+                    <p>Estude o pH de soluções e a relação logarítmica de íons hidrônio.</p>
                 </div>
                 <div class="card-menu" onclick="MiniGameInvestigation.init()">
-                    <h3>🔍 Investigação Laboratorial</h3>
-                    <p>Receba uma amostra desconhecida, realize testes de pH, solubilidade e precipitação para identificá-la.</p>
+                    <h3>🔍 6. Investigação Laboratorial</h3>
+                    <p>Identifique amostras desconhecidas com testes químicos de precipitação e pH.</p>
                 </div>
             </div>
 
@@ -97,17 +97,175 @@
             </div>
         </div>
 
-        <!-- TELA DE CONFIGURAÇÃO DA TITULAÇÃO -->
+        <!-- BALANÇA ANALÍTICA INTERATIVA -->
+        <div id="screen-balance" class="screen">
+            <h2>Balança Analítica de Precisão (0,0001 g)</h2>
+            <p>Simulador de pesagem analítica com câmara de proteção, tara e estabilização de leitura.</p>
+
+            <div class="lab-container">
+                <div>
+                    <!-- Visual da Balança Analítica -->
+                    <div class="balance-bench">
+                        <div class="balance-body">
+                            <div class="balance-screen">
+                                <span id="balanceDisplay">0.0000 g</span>
+                                <span id="balanceStatus" style="font-size: 0.75rem; color: var(--emerald);">ESTÁVEL</span>
+                            </div>
+                            <div class="balance-buttons">
+                                <button class="b-btn" onclick="AnalyticalBalance.togglePower()">LIGA/DESL</button>
+                                <button class="b-btn" onclick="AnalyticalBalance.zeroScale()">ZERO</button>
+                                <button class="b-btn" onclick="AnalyticalBalance.tareScale()">TARA</button>
+                            </div>
+                        </div>
+                        <div class="balance-chamber">
+                            <div class="chamber-glass"></div>
+                            <div class="weighing-pan" id="weighingPan">
+                                <!-- Recipiente aparece aqui se colocado -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="AnalyticalBalance.openContainerModal()">Selecionar Recipiente</button>
+                        <button class="btn" id="btnAddSolidBtn" onclick="AnalyticalBalance.openAddSolidModal()" disabled>Adicionar Sólido</button>
+                        <button class="btn btn-danger" onclick="AnalyticalBalance.removeContainer()" id="btnRemoveCont" disabled>Remover do Prato</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <h3>Registro de Pesagem</h3>
+                    <div class="control-group">
+                        <label>Recipiente Atual:</label>
+                        <span id="balRecipName" style="font-weight: bold; color: var(--primary-dark);">Nenhum</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Massa do Recipiente Vazio:</label>
+                        <span id="balRecipMass">0,0000 g</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Massa Bruta (Recipiente + Sólido):</label>
+                        <span id="balGrossMass">0,0000 g</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Massa Líquida do Sólido:</label>
+                        <span id="balNetMass" style="font-size: 1.2rem; font-weight: bold; color: var(--emerald-dark);">0,0000 g</span>
+                    </div>
+
+                    <button class="btn mt-4" onclick="AnalyticalBalance.saveWeighingData()">Salvar Pesagem no Caderno</button>
+                    <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
+                </div>
+            </div>
+
+            <!-- Modal / Área de Seleção de Recipiente -->
+            <div id="containerModal" class="hidden" style="margin-top: 1.5rem; background: #f1f5f9; padding: 1.5rem; border-radius: 8px;">
+                <h3>Escolha o Recipiente de Pesagem</h3>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="AnalyticalBalance.placeContainer('beaker', 35.2410, 'Béquer de 50 mL')">Béquer de 50 mL (35,2410 g)</button>
+                    <button class="btn btn-secondary" onclick="AnalyticalBalance.placeContainer('watchglass', 15.1200, 'Vidro de Relógio')">Vidro de Relógio (15,1200 g)</button>
+                    <button class="btn btn-secondary" onclick="AnalyticalBalance.placeContainer('boat', 2.1500, 'Barquinha de Pesagem')">Barquinha de Pesagem (2,1500 g)</button>
+                </div>
+            </div>
+
+            <!-- Modal / Área de Adicionar Sólido -->
+            <div id="addSolidModal" class="hidden" style="margin-top: 1.5rem; background: #f1f5f9; padding: 1.5rem; border-radius: 8px;">
+                <h3>Adicionar Reagente Sólido (Padrão Primário)</h3>
+                <div class="control-group">
+                    <label>Selecione o Sólido:</label>
+                    <select id="selSolidType">
+                        <option value="KHP">Biftalato de Potássio (KHP) - Pureza 99,9%</option>
+                        <option value="Na2CO3">Carbonato de Sódio Anidro ($\text{Na}_2\text{CO}_3$) - Pureza 99,8%</option>
+                        <option value="Oxalic">Ácido Oxálico Di-hidratado ($\text{H}_2\text{C}_2\text{O}_4 \cdot 2\text{H}_2\text{O}$) - Pureza 99,5%</option>
+                    </select>
+                </div>
+                <div class="control-group mt-4">
+                    <label>Quantidade a Adicionar:</label>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn" onclick="AnalyticalBalance.addSolidIncrement(0.0500)">Adicionar ~0,05 g</button>
+                        <button class="btn" onclick="AnalyticalBalance.addSolidIncrement(0.5000)">Adicionar ~0,50 g</button>
+                        <button class="btn btn-secondary" onclick="AnalyticalBalance.closeAddSolidModal()">Concluir Adição</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREPARO DE SOLUÇÃO (PADRÃO PRIMÁRIO) -->
+        <div id="screen-prep-standard" class="screen">
+            <h2>Preparo de Solução Padrão Primário</h2>
+            <p>Calcule a massa necessária com base na pureza, pese na balança e transfira para o balão volumétrico.</p>
+            
+            <div class="control-panel" style="max-width: 600px; margin: 0 auto;">
+                <div class="control-group">
+                    <label>Selecione o Padrão:</label>
+                    <select id="prepStandardType">
+                        <option value="KHP">Biftalato de Potássio (KHP) - MM = 204,22 g/mol (Pureza: 99,9%)</option>
+                        <option value="Na2CO3">Carbonato de Sódio ($\text{Na}_2\text{CO}_3$) - MM = 105,99 g/mol (Pureza: 99,8%)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Concentração Desejada (mol/L):</label>
+                    <input type="number" id="prepTargetConc" value="0.1000" step="0.0001">
+                </div>
+                <div class="control-group">
+                    <label>Volume do Balão Volumétrico (mL):</label>
+                    <select id="prepVolumeBallon">
+                        <option value="250">250 mL</option>
+                        <option value="500">500 mL</option>
+                        <option value="1000">1000 mL</option>
+                    </select>
+                </div>
+
+                <div id="prepCalculatedInfo" class="alert-box mt-4">
+                    <strong>Massa Teórica Necessária:</strong> <span id="spanTheoreticalMass">--</span> g
+                </div>
+
+                <button class="btn mt-4" onclick="PrimaryStandardLab.executePreparation()">Executar Dissolução e Aferição</button>
+                <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
+                
+                <div id="prepResultFeedback" class="mt-4"></div>
+            </div>
+        </div>
+
+        <!-- PADRONIZAÇÃO DE TITULANTES -->
+        <div id="screen-standardization" class="screen">
+            <h2>Padronização de Solução Titulante</h2>
+            <p>Determine a concentração exata de uma solução de $\text{NaOH}$ ou $\text{HCl}$ utilizando o padrão primário preparado.</p>
+            
+            <div class="control-panel" style="max-width: 600px; margin: 0 auto;">
+                <div class="control-group">
+                    <label>Qual titulante deseja padronizar?</label>
+                    <select id="stdTitrant">
+                        <option value="NaOH">Hidróxido de Sódio ($\text{NaOH}$) aprox. 0,1 mol/L</option>
+                        <option value="HCl">Ácido Clorídrico ($\text{HCl}$) aprox. 0,1 mol/L</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Indicador Adequado:</label>
+                    <select id="stdIndicator">
+                        <option value="phenolphthalein">Fenolftaleína (Ideal para NaOH/KHP)</option>
+                        <option value="methyl_orange">Alaranjado de Metila (Ideal para HCl/$\text{Na}_2\text{CO}_3$)</option>
+                    </select>
+                </div>
+
+                <button class="btn mt-4" onclick="StandardizationLab.startStandardizationRun()">Iniciar Titulação de Padronização</button>
+                <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
+            </div>
+        </div>
+
+        <!-- CONFIGURAÇÃO DA TITULAÇÃO -->
         <div id="screen-titration-config" class="screen">
             <h2>Configuração da Titulação Ácido-Base</h2>
-            <p>Personalize os parâmetros do experimento antes de iniciar a prática no laboratório virtual.</p>
+            <p>Selecione reagentes fortes, fracos ou oxidantes com avisos de segurança específicos.</p>
 
             <div class="config-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
                 <div class="control-group">
                     <label>Solução no Erlenmeyer (Titrando):</label>
-                    <select id="cfgFlaskSolution">
+                    <select id="cfgFlaskSolution" onchange="TitrationLab.checkReagentSafety()">
                         <option value="HCl">Ácido Clorídrico (HCl)</option>
+                        <option value="H2SO4">Ácido Sulfúrico ($\text{H}_2\text{SO}_4$)</option>
+                        <option value="HNO3">Ácido Nítrico ($\text{HNO}_3$ - Oxidante)</option>
+                        <option value="HClO4">Ácido Perclórico ($\text{HClO}_4$ - Alto Risco Oxidante)</option>
                         <option value="CH3COOH">Ácido Acético (CH₃COOH)</option>
+                        <option value="H3PO4">Ácido Fosfórico ($\text{H}_3\text{PO}_4$)</option>
                         <option value="NaOH">Hidróxido de Sódio (NaOH)</option>
                         <option value="KOH">Hidróxido de Potássio (KOH)</option>
                     </select>
@@ -115,62 +273,40 @@
 
                 <div class="control-group">
                     <label>Solução na Bureta (Titulante):</label>
-                    <select id="cfgBuretteSolution">
+                    <select id="cfgBuretteSolution" onchange="TitrationLab.checkReagentSafety()">
                         <option value="NaOH" selected>Hidróxido de Sódio (NaOH)</option>
                         <option value="KOH">Hidróxido de Potássio (KOH)</option>
                         <option value="HCl">Ácido Clorídrico (HCl)</option>
-                        <option value="CH3COOH">Ácido Acético (CH₃COOH)</option>
                     </select>
                 </div>
+
+                <div class="control-group" style="grid-column: span 2;" id="reagentSafetyAlertContainer"></div>
 
                 <div class="control-group">
                     <label>Modo de Concentração:</label>
-                    <select id="cfgConcMode" onchange="TitrationLab.toggleConfigMode()">
+                    <select id="cfgConcMode">
+                        <option value="standardized">Utilizar Titulante Padronizado Anteriormente</option>
                         <option value="unknown_titrand">Determinar Concentração do Erlenmeyer (Desconhecida)</option>
-                        <option value="unknown_titrant">Determinar Concentração da Bureta (Desconhecida)</option>
-                        <option value="training">Simulação de Treinamento (Ambas Conhecidas)</option>
+                        <option value="training">Simulação de Treinamento (Conhecidas)</option>
                     </select>
-                </div>
-
-                <div class="control-group" id="groupKnownConc">
-                    <label id="labelKnownConc">Concentração da Solução Conhecida (mol/L):</label>
-                    <input type="number" id="cfgKnownConcVal" value="0.1000" step="0.0001" min="0.0001">
                 </div>
 
                 <div class="control-group">
-                    <label>Volume Inicial da Amostra (Erlenmeyer):</label>
-                    <select id="cfgSampleVol">
-                        <option value="10.00">10,00 mL</option>
-                        <option value="20.00">20,00 mL</option>
-                        <option value="25.00" selected>25,00 mL</option>
-                        <option value="custom">Personalizado</option>
-                    </select>
-                </div>
-
-                <div class="control-group" id="groupCustomVol" style="display:none;">
-                    <label>Volume Personalizado (mL):</label>
-                    <input type="number" id="cfgCustomVolVal" value="15.00" step="0.1" min="1" max="100">
-                </div>
-
-                <div class="control-group">
-                    <label>Indicador Químico:</label>
-                    <select id="cfgIndicator">
-                        <option value="phenolphthalein">Fenolftaleína (Incolor → Rosa)</option>
-                        <option value="universal">Indicador Universal (Espectro pH)</option>
-                    </select>
+                    <label>Volume Inicial da Amostra (mL):</label>
+                    <input type="number" id="cfgSampleVol" value="25.00" step="0.1">
                 </div>
             </div>
 
             <div class="flex-row mt-4">
-                <button class="btn" onclick="TitrationLab.startFromConfig()">Iniciar Experimento</button>
+                <button class="btn" onclick="TitrationLab.startFromConfig()">Ir para a Bancada de Titulação</button>
                 <button class="btn btn-secondary" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
             </div>
         </div>
 
         <!-- LAB DE TITULAÇÃO ÁCIDO-BASE -->
         <div id="screen-titration" class="screen">
-            <h2>Experimento: Titulação de Soluções</h2>
-            <p id="titrationObjective">Objetivo: Determinar a concentração desconhecida da amostra.</p>
+            <h2>Experimento: Titulação Avançada</h2>
+            <p id="titrationObjective">Objetivo: Determinar a concentração da amostra.</p>
 
             <div class="lab-container">
                 <div>
@@ -237,7 +373,7 @@
                 </div>
             </div>
 
-            <!-- TELA DE CÁLCULOS E RESULTADOS DA TITULAÇÃO -->
+            <!-- TELA DE CÁLCULOS E RESULTADOS -->
             <div id="calcSection" class="screen mt-4 hidden" style="display:none; padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px;">
                 <h3>Etapa de Cálculos Químicos</h3>
                 <p>Insira os dados obtidos para determinar a concentração desconhecida:</p>
@@ -250,10 +386,6 @@
                     <div class="control-group">
                         <label>Volume da Amostra (mL):</label>
                         <input type="number" id="calcVSample" readonly>
-                    </div>
-                    <div class="control-group">
-                        <label>Concentração Conhecida (mol/L):</label>
-                        <input type="number" id="calcKnownC" readonly>
                     </div>
                     <div class="control-group">
                         <label>Sua Concentração Calculada (mol/L):</label>
@@ -287,54 +419,26 @@
             </div>
         </div>
 
-        <!-- MINIJOGO 1: pH -->
+        <!-- MINIJOGOS ANTERIORES PRESERVADOS -->
         <div id="screen-ph" class="screen">
             <h2>Minijogo 1: Medição de pH</h2>
-            <p>Determine o pH de diferentes soluções e entenda a escala logarítmica de íons hidrônio (H₃O⁺).</p>
             <div id="phContent"></div>
             <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
         </div>
 
-        <!-- MINIJOGO 2: DILUIÇÃO -->
-        <div id="screen-dilution" class="screen">
-            <h2>Minijogo 2: Diluição de Soluções</h2>
-            <p>Utilize a fórmula C₁V₁ = C₂V₂ para preparar uma solução diluída corretamente.</p>
-            <div id="dilutionContent"></div>
-            <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
-        </div>
-
-        <!-- MINIJOGO 3: ESTEQUIOMETRIA -->
-        <div id="screen-stoich" class="screen">
-            <h2>Minijogo 3: Estequiometria e Reagente Limitante</h2>
-            <p>Resolva problemas de proporção estequiométrica em reações químicas industriais e laboratoriais.</p>
-            <div id="stoichContent"></div>
-            <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
-        </div>
-
-        <!-- MINIJOGO 4: PREPARO -->
-        <div id="screen-prep" class="screen">
-            <h2>Minijogo 4: Preparo de Solução Sólida</h2>
-            <p>Calcule a massa necessária de um reagente puro, pese na balança analítica e transfira para o balão volumétrico.</p>
-            <div id="prepContent"></div>
-            <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
-        </div>
-
-        <!-- MINIJOGO 5: INVESTIGAÇÃO -->
         <div id="screen-investigation" class="screen">
-            <h2>Minijogo 5: Investigação Laboratorial</h2>
-            <p>Identifique uma amostra desconhecida realizando testes químicos sistemáticos de pH, solubilidade e precipitação.</p>
+            <h2>Minijogo de Investigação Laboratorial</h2>
             <div id="investigationContent"></div>
             <button class="btn btn-secondary mt-4" onclick="App.goToScreen('screen-experiments')">Voltar ao Menu</button>
         </div>
 
-        <!-- GLOSSÁRIO -->
+        <!-- GLOSSÁRIO E CATÁLOGO -->
         <div id="screen-glossary" class="screen">
-            <h2>Glossário de Termos Químicos</h2>
+            <h2>Catálogo de Reagentes e Glossário Analítico</h2>
             <ul style="padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <li><strong>Ponto de Equivalência:</strong> Momento teórico em que a quantidade de mols do ácido é estequiometricamente equivalente à quantidade de mols da base adicionada.</li>
-                <li><strong>Ponto Final:</strong> Mudança física observada (mudança de cor do indicador) que sinaliza o término prático da titulação.</li>
-                <li><strong>Fenolftaleína:</strong> Indicador ácido-base que permanece incolor em meios ácidos (pH < 8.2) e apresenta coloração rosa em meios básicos (pH > 10.0).</li>
-                <li><strong>Erro Relativo:</strong> Diferença percentual entre o valor obtido experimentalmente e o valor real padrão fornecido pelo simulador.</li>
+                <li><strong>Balança Analítica:</strong> Instrumento de alta precisão com quatro casas decimais (0,0001 g), dotado de câmara contra correntes de ar e função de tara.</li>
+                <li><strong>Padrão Primário:</strong> Substância de alta pureza, estabilidade e massa molar conhecida, utilizada para padronização de soluções. Ex: Biftalato de Potássio (KHP).</li>
+                <li><strong>Ácido Perclórico ($\text{HClO}_4$):</strong> Ácido forte altamente oxidante. Reage violentamente com compostos orgânicos e redutores. Exige protocolos rígidos de segurança.</li>
             </ul>
             <div class="mt-4">
                 <button class="btn btn-secondary" onclick="App.goToScreen('screen-home')">Voltar ao Início</button>
