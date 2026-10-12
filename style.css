@@ -151,7 +151,145 @@ p {
     margin-bottom: 0.5rem;
 }
 
-/* Laboratório de Titulação */
+/* Estilos da Balança Analítica */
+.balance-bench {
+    background: #e2e8f0;
+    border-radius: 8px;
+    height: 420px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 2rem;
+    border-bottom: 8px solid #94a3b8;
+    overflow: hidden;
+}
+
+.balance-body {
+    position: absolute;
+    top: 20px;
+    width: 220px;
+    background: #334155;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.balance-screen {
+    background: #0f172a;
+    color: #38bdf8;
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.3rem;
+    text-align: right;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+}
+
+.balance-buttons {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.b-btn {
+    background: #64748b;
+    color: white;
+    border: none;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.b-btn:hover { background: #475569; }
+
+.balance-chamber {
+    width: 260px;
+    height: 200px;
+    border: 3px solid #64748b;
+    border-bottom: none;
+    position: relative;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 15px;
+    border-radius: 4px 4px 0 0;
+}
+
+.chamber-glass {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.1);
+    pointer-events: none;
+}
+
+.weighing-pan {
+    width: 120px;
+    height: 12px;
+    background: #cbd5e1;
+    border: 1px solid #64748b;
+    border-radius: 3px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+/* Recipientes na Balança */
+.vessel-item {
+    position: absolute;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s;
+}
+.vessel-beaker {
+    width: 45px;
+    height: 55px;
+    border: 2px solid #64748b;
+    border-top: none;
+    background: rgba(255,255,255,0.5);
+    border-radius: 0 0 6px 6px;
+    position: relative;
+}
+.vessel-watch {
+    width: 50px;
+    height: 15px;
+    border: 2px solid #64748b;
+    border-top: none;
+    border-radius: 0 0 25px 25px;
+    background: rgba(255,255,255,0.5);
+}
+.vessel-boat {
+    width: 40px;
+    height: 12px;
+    border: 2px solid #64748b;
+    border-top: none;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0 0 4px 4px;
+}
+.solid-inside {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: #f8fafc;
+    border-radius: 0 0 4px 4px;
+    transition: height 0.2s;
+}
+
+/* Laboratório de Titulação e Comuns */
 .lab-container {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -159,9 +297,7 @@ p {
 }
 
 @media(max-width: 900px) {
-    .lab-container {
-        grid-template-columns: 1fr;
-    }
+    .lab-container { grid-template-columns: 1fr; }
 }
 
 .bench {
@@ -177,7 +313,6 @@ p {
     overflow: hidden;
 }
 
-/* Suporte e Vidrarias CSS */
 .stand {
     position: absolute;
     left: 50%;
