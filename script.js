@@ -49,19 +49,22 @@ const App = {
     }
 };
 
-// Inicializar dados salvos ao carregar a página
 window.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
-// Módulo de Simulação de Titulação Ácido-Base
+// Módulo de Simulação de Titulação Ácido-Base Avançada
 const TitrationLab = {
-    cHCl: 0.1000, 
-    vHCl: 25.00,  
-    cNaOH: 0.1000,
-    
+    flaskSol: 'HCl',
+    buretteSol: 'NaOH',
+    concMode: 'unknown_titrand',
+    knownConc: 0.1000,
+    unknownConc: 0.1000,
+    sampleVol: 25.00,
+    indicator: 'phenolphthalein',
+
     buretteTotal: 50.00,
-    buretteCurrent: 0.00, 
+    buretteCurrent: 0.00,
     volSpent: 0.00,
     isStopcockOpen: false,
     animationInterval: null,
@@ -69,29 +72,93 @@ const TitrationLab = {
     currentTrialIndex: 1,
     exactEquivVolume: 25.00,
 
-    init() {
-        this.cHCl = parseFloat((0.085 + Math.random() * 0.030).toFixed(4));
-        this.exactEquivVolume = (this.cHCl * this.vHCl) / this.cNaOH;
-        
-        this.buretteCurrent = parseFloat((Math.random() * 5).toFixed(2)); 
+    openConfig() {
+        App.goToScreen('screen-titration-config');
+        document.getElementById('cfgSampleVol').addEventListener('change', (e) => {
+            document.getElementById('groupCustomVol').style.display = (e.target.value === 'custom') ? 'flex' : 'none';
+        });
+    },
+
+    toggleConfigMode() {
+        const mode = document.getElementById('cfgConcMode').value;
+        const group = document.getElementById('groupKnownConc');
+        const label = document.getElementById('labelKnownConc');
+        if(mode === 'training') {
+            label.innerText = "Concentração de Ambas as Soluções (Conhecidas):";
+            group.style.display = 'flex';
+        } else if(mode === 'unknown_titrand') {
+            label.innerText = "Concentração Conhecida da Bureta (mol/L):";
+            group.style.display = 'flex';
+        } else {
+            label.innerText = "Concentração Conhecida do Erlenmeyer (mol/L):";
+            group.style.display = 'flex';
+        }
+    },
+
+    startFromConfig() {
+        this.flaskSol = document.getElementById('cfgFlaskSolution').value;
+        this.buretteSol = document.getElementById('cfgBuretteSolution').value;
+
+        // Validação química: 1 ácido e 1 base
+        const acids = ['HCl', 'CH3COOH'];
+        const bases = ['NaOH', 'KOH'];
+        const isFlaskAcid = acids.includes(this.flaskSol);
+        const isBuretteAcid = acids.includes(this.buretteSol);
+
+        if (isFlaskAcid === isBuretteAcid) {
+            alert("Combinação inválida! O experimento de titulação exige um ácido em um recipiente e uma base no outro.");
+            return;
+        }
+
+        this.concMode = document.getElementById('cfgConcMode').value;
+        const knownVal = parseFloat(document.getElementById('cfgKnownConcVal').value);
+
+        const volChoice = document.getElementById('cfgSampleVol').value;
+        if(volChoice === 'custom') {
+            this.sampleVol = parseFloat(document.getElementById('cfgCustomVolVal').value) || 25.00;
+        } else {
+            this.sampleVol = parseFloat(volChoice);
+        }
+
+        this.indicator = document.getElementById('cfgIndicator').value;
+
+        // Atribuir concentrações
+        if(this.concMode === 'training') {
+            this.knownConc = knownVal;
+            this.unknownConc = knownVal; // Ambas conhecidas
+        } else if(this.concMode === 'unknown_titrand') {
+            this.knownConc = knownVal; // bureta
+            this.unknownConc = parseFloat((0.080 + Math.random() * 0.040).toFixed(4)); // erlenmeyer desconhecido
+        } else {
+            this.knownConc = knownVal; // erlenmeyer
+            this.unknownConc = parseFloat((0.080 + Math.random() * 0.040).toFixed(4)); // bureta desconhecida
+        }
+
+        // Calcular volume de equivalência exato
+        // n_acid = n_base => C_flask * V_flask = C_burette * V_burette
+        const cFlask = (this.concMode === 'unknown_titrand') ? this.unknownConc : this.knownConc;
+        const cBurette = (this.concMode === 'unknown_titrant') ? this.unknownConc : this.knownConc;
+        this.exactEquivVolume = (cFlask * this.sampleVol) / cBurette;
+
+        this.buretteCurrent = parseFloat((Math.random() * 5).toFixed(2));
         this.volSpent = 0.00;
         this.currentTrialIndex = this.trials.length + 1;
 
         if(this.currentTrialIndex > 3) {
-            alert("Você já concluiu as 3 tentativas recomendadas! Reiniciando série de testes.");
             this.trials = [];
             this.currentTrialIndex = 1;
         }
 
         document.getElementById('trialNumber').innerText = `${this.currentTrialIndex} de 3`;
         document.getElementById('volInitialDisplay').innerText = `${this.buretteCurrent.toFixed(2)} mL`;
-        document.getElementById('volSpentDisplay').innerText = `0,00 mL`;
+        document.getElementById('titrationObjective').innerText = `Titulação: ${this.flaskSol} (${this.sampleVol} mL) com ${this.buretteSol}`;
         document.getElementById('calcSection').classList.add('hidden');
         document.getElementById('calcSection').style.display = 'none';
         document.getElementById('btnFinishTrial').disabled = true;
 
         App.goToScreen('screen-titration');
         this.updateVisuals();
+        this.drawGraph();
     },
 
     toggleStopcock() {
@@ -111,7 +178,7 @@ const TitrationLab = {
     startFlow() {
         if(this.animationInterval) clearInterval(this.animationInterval);
         this.animationInterval = setInterval(() => {
-            this.addVolume(0.10); 
+            this.addVolume(0.10);
             this.triggerDropAnim();
         }, 150);
     },
@@ -126,6 +193,11 @@ const TitrationLab = {
         this.triggerDropAnim();
     },
 
+    addSmall() {
+        this.addVolume(0.10);
+        this.triggerDropAnim();
+    },
+
     addStream() {
         this.addVolume(1.00);
         this.triggerDropAnim();
@@ -133,37 +205,124 @@ const TitrationLab = {
 
     triggerDropAnim() {
         const drop = document.getElementById('dropElement');
+        drop.style.backgroundColor = this.getBuretteLiquidColor();
         drop.classList.remove('falling');
-        void drop.offsetWidth; 
+        void drop.offsetWidth;
         drop.classList.add('falling');
     },
 
     addVolume(amount) {
-        if(this.volSpent + this.exactEquivVolume + 5 >= 50 && this.buretteCurrent + this.volSpent >= 50) {
+        if(this.buretteCurrent + this.volSpent + amount >= this.buretteTotal) {
             alert("Bureta vazia!");
             this.stopFlow();
             return;
         }
         this.volSpent += amount;
         this.updateVisuals();
+        this.drawGraph();
+    },
+
+    getBuretteLiquidColor() {
+        return 'rgba(2, 132, 199, 0.7)';
     },
 
     calculateCurrentPH() {
-        const molesH = this.cHCl * this.vHCl; 
-        const molesOH = this.cNaOH * this.volSpent; 
-        const totalV = this.vHCl + this.volSpent; 
+        const acids = ['HCl', 'CH3COOH'];
+        const isFlaskAcid = acids.includes(this.flaskSol);
+        
+        const cFlask = (this.concMode === 'unknown_titrand') ? this.unknownConc : this.knownConc;
+        const cBurette = (this.concMode === 'unknown_titrant') ? this.unknownConc : this.knownConc;
 
-        if(molesOH < molesH) {
-            const excessH = (molesH - molesOH) / totalV; 
-            const pH = -Math.log10(excessH);
-            return Math.max(0, Math.min(14, pH));
-        } else if(Math.abs(molesOH - molesH) < 1e-5) {
-            return 7.00;
+        const nFlask = cFlask * this.sampleVol; // mmol
+        const nBurette = cBurette * this.volSpent; // mmol
+        const totalV = this.sampleVol + this.volSpent; // mL
+
+        if (isFlaskAcid) {
+            // Titrando Ácido com Base (NaOH ou KOH)
+            const isWeakAcid = (this.flaskSol === 'CH3COOH');
+            const Ka = 1.8e-5;
+
+            if (!isWeakAcid) {
+                // Ácido Forte + Base Forte
+                if (nBurette < nFlask) {
+                    const excessH = (nFlask - nBurette) / totalV;
+                    return Math.max(0, Math.min(14, -Math.log10(excessH)));
+                } else if (Math.abs(nBurette - nFlask) < 1e-5) {
+                    return 7.00;
+                } else {
+                    const excessOH = (nBurette - nFlask) / totalV;
+                    const pOH = -Math.log10(excessOH);
+                    return Math.max(0, Math.min(14, 14.00 - pOH));
+                }
+            } else {
+                // Ácido Fraco (CH3COOH) + Base Forte
+                if (this.volSpent === 0) {
+                    // [H+] = sqrt(Ka * Ca)
+                    const h = Math.sqrt(Ka * cFlask);
+                    return Math.max(0, Math.min(14, -Math.log10(h)));
+                } else if (nBurette < nFlask) {
+                    // Região de Tampão (Henderson-Hasselbalch)
+                    const pKa = -Math.log10(Ka);
+                    const nA = nFlask - nBurette; // mols ácido não reagido
+                    const nSalt = nBurette; // mols sal formado
+                    const pH = pKa + Math.log10(nSalt / nA);
+                    return Math.max(0, Math.min(14, pH));
+                } else if (Math.abs(nBurette - nFlask) < 1e-5) {
+                    // Ponto de equivalência (Hidrólise do acetato)
+                    const cSalt = nFlask / totalV;
+                    const Kw = 1.0e-14;
+                    const Kb = Kw / Ka;
+                    const oh = Math.sqrt(Kb * cSalt);
+                    const pOH = -Math.log10(oh);
+                    return Math.max(0, Math.min(14, 14.00 - pOH));
+                } else {
+                    // Excesso de base forte
+                    const excessOH = (nBurette - nFlask) / totalV;
+                    const pOH = -Math.log10(excessOH);
+                    return Math.max(0, Math.min(14, 14.00 - pOH));
+                }
+            }
         } else {
-            const excessOH = (molesOH - molesH) / totalV;
-            const pOH = -Math.log10(excessOH);
-            const pH = 14.00 - pOH;
-            return Math.max(0, Math.min(14, pH));
+            // Titrando Base (NaOH ou KOH) com Ácido (HCl)
+            if (nBurette < nFlask) {
+                const excessOH = (nFlask - nBurette) / totalV;
+                const pOH = -Math.log10(excessOH);
+                return Math.max(0, Math.min(14, 14.00 - pOH));
+            } else if (Math.abs(nBurette - nFlask) < 1e-5) {
+                return 7.00;
+            } else {
+                const excessH = (nBurette - nFlask) / totalV;
+                return Math.max(0, Math.min(14, -Math.log10(excessH)));
+            }
+        }
+    },
+
+    getIndicatorStyle(pH) {
+        const acids = ['HCl', 'CH3COOH'];
+        const isFlaskAcid = acids.includes(this.flaskSol);
+
+        if (this.indicator === 'phenolphthalein') {
+            if (isFlaskAcid) {
+                // Ácido titulado com base: incolor até pH 8.2, depois rosa progressivo
+                if (pH < 8.2) return { color: 'transparent', text: 'Incolor (Meio Ácido)' };
+                if (pH >= 8.2 && pH <= 9.8) {
+                    const alpha = Math.min(0.7, 0.15 + (pH - 8.2) * 0.35);
+                    return { color: `rgba(236, 72, 153, ${alpha})`, text: 'Rosa Claro — Ponto Final ✨' };
+                }
+                return { color: 'rgba(236, 72, 153, 0.9)', text: 'Rosa Intenso (Excesso de Base)' };
+            } else {
+                // Base titulada com ácido: rosa inicial que descolore
+                if (pH > 10.0) return { color: 'rgba(236, 72, 153, 0.85)', text: 'Rosa (Meio Básico)' };
+                if (pH >= 8.2 && pH <= 10.0) return { color: 'rgba(236, 72, 153, 0.3)', text: 'Rosa Claro (Zona de Viragem)' };
+                return { color: 'transparent', text: 'Incolor (Ponto Final Atingido)' };
+            }
+        } else {
+            // Indicador Universal
+            if (pH <= 3) return { color: 'rgba(239, 68, 68, 0.6)', text: 'Vermelho (Ácido Forte)' };
+            if (pH > 3 && pH < 6) return { color: 'rgba(245, 158, 11, 0.6)', text: 'Laranja/Amarelo (Ácido Fraco)' };
+            if (pH >= 6 && pH <= 8) return { color: 'rgba(16, 185, 129, 0.6)', text: 'Verde (Neutro)' };
+            if (pH > 8 && pH <= 11) return { color: 'rgba(59, 130, 246, 0.6)', text: 'Azul (Básico)' };
+            return { color: 'rgba(139, 92, 246, 0.6)', text: 'Violeta/Roxo (Base Forte)' };
         }
     },
 
@@ -172,31 +331,139 @@ const TitrationLab = {
         const spentDisplay = document.getElementById('volSpentDisplay');
         const phDisplay = document.getElementById('pHDisplay');
         const statusDisplay = document.getElementById('statusDisplay');
+        const liquidBurette = document.getElementById('buretteLiquid');
         const liquidErlen = document.getElementById('erlenmeyerLiquid');
         const btnFinish = document.getElementById('btnFinishTrial');
 
         spentDisplay.innerText = `${this.volSpent.toFixed(2)} mL`;
         phDisplay.innerText = `${currentPH.toFixed(2)}`;
 
-        let colorHex = "transparent";
-        let statusText = "Incolor (Ácido)";
+        // Nível da bureta (diminui proporcionalmente)
+        const buretteRemaining = Math.max(0, this.buretteTotal - (this.buretteCurrent + this.volSpent));
+        const buretteHeightPct = (buretteRemaining / this.buretteTotal) * 100;
+        liquidBurette.style.height = `${buretteHeightPct}%`;
+        liquidBurette.style.backgroundColor = 'rgba(2, 132, 199, 0.6)';
 
-        if(currentPH >= 8.2 && currentPH <= 9.8) {
-            colorHex = "rgba(244, 114, 182, 0.45)"; 
-            statusText = "Rosa Claro — Ponto Final Atingido! ✨";
+        // Nível do Erlenmeyer (aumenta proporcionalmente)
+        const totalErlenVol = this.sampleVol + this.volSpent;
+        const erlenHeightPct = Math.min(85, 40 + (totalErlenVol / 75) * 45);
+        liquidErlen.style.height = `${erlenHeightPct}%`;
+
+        const indStyle = this.getIndicatorStyle(currentPH);
+        liquidErlen.style.backgroundColor = indStyle.color;
+        statusDisplay.innerText = indStyle.text;
+
+        // Liberar registro se próximo ao ponto de equivalência
+        const acids = ['HCl', 'CH3COOH'];
+        const isFlaskAcid = acids.includes(this.flaskSol);
+        if(isFlaskAcid && currentPH >= 7.5 && currentPH <= 11.5) {
             btnFinish.disabled = false;
-        } else if(currentPH > 9.8) {
-            colorHex = "rgba(236, 72, 153, 0.85)"; 
-            statusText = "Rosa Forte (Excesso de Base)";
+        } else if(!isFlaskAcid && currentPH <= 9.0 && currentPH >= 3.0) {
             btnFinish.disabled = false;
         } else {
-            colorHex = "transparent";
-            statusText = currentPH < 7 ? "Incolor (Meio Ácido)" : "Incolor (Próximo à neutralidade)";
-            btnFinish.disabled = currentPH < 7.5; 
+            btnFinish.disabled = currentPH < 7.0 && isFlaskAcid;
+        }
+    },
+
+    drawGraph() {
+        const canvas = document.getElementById('titrationCanvas');
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Margens
+        const padding = 40;
+        const graphWidth = width - 2 * padding;
+        const graphHeight = height - 2 * padding;
+
+        // Eixos
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, height - padding);
+        ctx.lineTo(width - padding, height - padding);
+        ctx.stroke();
+
+        // Rótulos
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '11px Segoe UI';
+        ctx.fillText('pH (0-14)', 10, padding - 5);
+        ctx.fillText('Volume Adicionado (mL)', width - 130, height - 10);
+
+        // Escalas (X: 0 a 50 mL, Y: 0 a 14 pH)
+        const maxX = 50.0;
+        const maxY = 14.0;
+
+        const scaleX = (val) => padding + (val / maxX) * graphWidth;
+        const scaleY = (val) => height - padding - (val / maxY) * graphHeight;
+
+        // Destacar faixa de viragem da fenolftaleína (pH 8.2 a 10.0)
+        if(this.indicator === 'phenolphthalein') {
+            ctx.fillStyle = 'rgba(236, 72, 153, 0.12)';
+            const yTop = scaleY(10.0);
+            const yBot = scaleY(8.2);
+            ctx.fillRect(padding, yTop, graphWidth, yBot - yTop);
+
+            ctx.fillStyle = '#db2777';
+            ctx.font = '10px Segoe UI';
+            ctx.fillText('Faixa Fenolftaleína (pH 8.2 - 10.0)', padding + 10, yTop + 12);
         }
 
-        liquidErlen.style.backgroundColor = colorHex;
-        statusDisplay.innerText = statusText;
+        // Linha vertical do Ponto de Equivalência Teórico
+        const xEq = scaleX(this.exactEquivVolume);
+        ctx.strokeStyle = '#ef4444';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(xEq, padding);
+        ctx.lineTo(xEq, height - padding);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '10px Segoe UI';
+        ctx.fillText(`V(eq): ${this.exactEquivVolume.toFixed(2)} mL`, xEq + 5, padding + 15);
+
+        // Desenhar a curva teórica de titulação em tempo real
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let isFirst = true;
+        for (let v = 0; v <= 50; v += 0.5) {
+            // Simular pH temporário para cada ponto v
+            const oldVol = this.volSpent;
+            this.volSpent = v;
+            const phVal = this.calculateCurrentPH();
+            this.volSpent = oldVol; // restaurar
+
+            const px = scaleX(v);
+            const py = scaleY(phVal);
+
+            if (isFirst) {
+                ctx.moveTo(px, py);
+                isFirst = false;
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
+        ctx.stroke();
+
+        // Ponto atual do experimento no gráfico
+        const currentPH = this.calculateCurrentPH();
+        const currX = scaleX(this.volSpent);
+        const currY = scaleY(currentPH);
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(currX, currY, 6, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     },
 
     resetFlask() {
@@ -206,34 +473,48 @@ const TitrationLab = {
         document.getElementById('btnStopcock').innerText = "Abrir Torneira";
         document.getElementById('btnStopcock').style.backgroundColor = "var(--emerald)";
         this.updateVisuals();
+        this.drawGraph();
     },
 
     finishTrial() {
         this.stopFlow();
         document.getElementById('calcSection').style.display = 'block';
         document.getElementById('calcSection').classList.remove('hidden');
-        document.getElementById('calcVNaOH').value = this.volSpent.toFixed(2);
-        document.getElementById('calcVHCl').value = this.vHCl.toFixed(2);
-        document.getElementById('calcCNaOH').value = this.cNaOH.toFixed(4);
+        document.getElementById('calcVTitrant').value = this.volSpent.toFixed(2);
+        document.getElementById('calcVSample').value = this.sampleVol.toFixed(2);
+        
+        const knownVal = (this.concMode === 'unknown_titrand') ? this.knownConc : this.knownConc;
+        document.getElementById('calcKnownC').value = knownVal.toFixed(4);
     },
 
     checkCalculations() {
-        const userVal = parseFloat(document.getElementById('userCHCIInput').value);
+        const userVal = parseFloat(document.getElementById('userResultInput').value);
         const feedback = document.getElementById('calcFeedback');
         feedback.classList.remove('hidden');
 
         if(isNaN(userVal)) {
-            feedback.innerHTML = `<span style="color:var(--danger)">Insira um valor numérico válido para a concentração de HCl.</span>`;
+            feedback.innerHTML = `<span style="color:var(--danger)">Insira um valor numérico válido.</span>`;
             return;
         }
 
-        const correctCHCL = (this.cNaOH * this.volSpent) / this.vHCl;
-        const errorPercent = Math.abs((userVal - correctCHCL) / correctCHCL) * 100;
+        // Cálculo estequiométrico correto (1:1)
+        // C_desconhecida * V_amostra = C_conhecida * V_gasto
+        let correctVal = 0;
+        const knownVal = this.knownConc;
+        if(this.concMode === 'unknown_titrand') {
+            correctVal = (knownVal * this.volSpent) / this.sampleVol;
+        } else {
+            correctVal = (knownVal * this.sampleVol) / this.volSpent; // se titulante for desconhecido
+        }
 
-        if(errorPercent <= 2.5) {
+        const errorPercent = Math.abs((userVal - correctVal) / correctVal) * 100;
+        const realTarget = this.unknownConc;
+        const absoluteError = Math.abs(userVal - realTarget);
+
+        if(errorPercent <= 3.0) {
             feedback.innerHTML = `<strong style="color:var(--emerald-dark)">Parabéns! Excelente precisão experimental.</strong><br>` +
-                `O valor calculado correto é <strong>${correctCHCL.toFixed(4)} mol/L</strong>.<br>` +
-                `O valor real gerado pelo simulador era <strong>${this.cHCl.toFixed(4)} mol/L</strong> (Diferença de ${Math.abs(userVal - this.cHCl).toFixed(4)} mol/L).`;
+                `Valor calculado correto: <strong>${correctVal.toFixed(4)} mol/L</strong>.<br>` +
+                `Valor real interno: <strong>${realTarget.toFixed(4)} mol/L</strong> (Erro absoluto: ${absoluteError.toFixed(4)}).`;
             
             App.addScore(40);
 
@@ -250,8 +531,8 @@ const TitrationLab = {
             document.getElementById('calcSection').style.display = 'none';
 
         } else {
-            feedback.innerHTML = `<strong style="color:var(--warning)">Atenção ao cálculo:</strong> O valor calculado difere do esperado (${correctCHCL.toFixed(4)} mol/L).<br>` +
-                `Lembre-se da fórmula: C_HCl = (C_NaOH * V_NaOH) / V_HCl. Verifique se converteu os volumes corretamente e tente novamente!`;
+            feedback.innerHTML = `<strong style="color:var(--warning)">Atenção ao cálculo:</strong> O valor calculado difere do esperado.<br>` +
+                `Revise a proporção estequiométrica $C_1 V_1 = C_2 V_2$ e a conversão de unidades. Tente novamente!`;
         }
     },
 
@@ -273,13 +554,13 @@ const TitrationLab = {
 
         if(this.trials.length >= 3) {
             const avg = sumCalc / this.trials.length;
-            const errorReal = Math.abs((avg - this.cHCl) / this.cHCl) * 100;
+            const errorReal = Math.abs((avg - this.unknownConc) / this.unknownConc) * 100;
             document.getElementById('statsSummary').innerHTML = `
                 <div class="alert-box">
                     <strong>Relatório Estatístico Final:</strong><br>
-                    Média das concentrações: <strong>${avg.toFixed(4)} mol/L</strong><br>
-                    Concentração Real Oculta: <strong>${this.cHCl.toFixed(4)} mol/L</strong><br>
-                    Erro Relativo Médio: <strong>${errorReal.toFixed(2)}%</strong>. Excelente concordância entre as titulações!
+                    Média das concentrações obtidas: <strong>${avg.toFixed(4)} mol/L</strong><br>
+                    Concentração Real Padrão: <strong>${this.unknownConc.toFixed(4)} mol/L</strong><br>
+                    Erro Relativo Médio: <strong>${errorReal.toFixed(2)}%</strong>. Excelente trabalho analítico!
                 </div>
             `;
             App.addScore(50);
@@ -287,7 +568,7 @@ const TitrationLab = {
     }
 };
 
-// Minijogo 1: pH
+// Minijogos complementares preservados
 const MiniGamePH = {
     init() {
         const container = document.getElementById('phContent');
@@ -317,7 +598,6 @@ const MiniGamePH = {
     }
 };
 
-// Minijogo 2: Diluição
 const MiniGameDilution = {
     init() {
         const container = document.getElementById('dilutionContent');
@@ -344,7 +624,6 @@ const MiniGameDilution = {
     }
 };
 
-// Minijogo 3: Estequiometria
 const MiniGameStoich = {
     init() {
         const container = document.getElementById('stoichContent');
@@ -371,7 +650,6 @@ const MiniGameStoich = {
     }
 };
 
-// Minijogo 4: Preparo de Solução Sólida
 const MiniGamePrep = {
     init() {
         const container = document.getElementById('prepContent');
@@ -398,7 +676,6 @@ const MiniGamePrep = {
     }
 };
 
-// Minijogo 5: Investigação Laboratorial
 const MiniGameInvestigation = {
     init() {
         const container = document.getElementById('investigationContent');
